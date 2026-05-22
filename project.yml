@@ -49,3 +49,24 @@ targets:
         product: MLXLLM
       - package: mlx-swift-examples
         product: MLXLMCommon
+
+  STOICHelper:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Helper
+    info:
+      path: Helper/Info.plist
+      properties:
+        CFBundleDisplayName: STOIC OS Helper
+        CFBundleName: STOIC OS Helper
+        LSUIElement: true
+        LSMinimumSystemVersion: "14.0"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chethankmurthy.STOICOS.Helper
+        PRODUCT_NAME: STOICHelper
+        SWIFT_VERSION: "5.0"
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGN_STYLE: Automatic
