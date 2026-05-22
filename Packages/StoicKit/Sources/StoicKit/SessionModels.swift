@@ -102,6 +102,24 @@ public struct ConstitutionImpact: Codable, Sendable, Equatable {
     }
 }
 
+/// The structured output of a career-coaching session.
+public struct CoachOutput: Codable, Sendable, Equatable {
+    public var read: String
+    public var leverageMoves: [String]
+    public var statusFixes: [String]
+    public var avoid: [String]
+
+    public init(read: String,
+                leverageMoves: [String],
+                statusFixes: [String],
+                avoid: [String]) {
+        self.read = read
+        self.leverageMoves = leverageMoves
+        self.statusFixes = statusFixes
+        self.avoid = avoid
+    }
+}
+
 /// The verdict of the guardrail screening pass.
 public struct GuardrailScreen: Codable, Sendable {
     public var violation: Bool

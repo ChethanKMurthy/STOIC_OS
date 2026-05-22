@@ -17,6 +17,16 @@ struct BragDocView: View {
     @State private var contactRelationship: ContactRelationship = .neutral
     @State private var contactInfluence: InfluenceLevel = .medium
 
+    @State private var coachInput = ""
+    @State private var coachState: CoachState = .idle
+
+    private enum CoachState {
+        case idle
+        case running
+        case done(CoachOutput)
+        case failed(String)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -24,6 +34,7 @@ struct BragDocView: View {
                             subtitle: "Evidence and alliances for your growth.")
                 bragSection
                 networkSection
+                coachSection
             }
             .padding(24)
         }
@@ -188,6 +199,99 @@ struct BragDocView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.textDim)
             Text(value).font(.caption).foregroundStyle(Theme.textPrimary)
+        }
+    }
+
+    // MARK: - Career coaching
+
+    private var isCoaching: Bool {
+        if case .running = coachState { return true }
+        return false
+    }
+
+    private var coachSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionLabel("Career coaching")
+            Card {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Describe a workplace situation, an update you wrote, a meeting, or a move you're weighing.")
+                        .font(.callout)
+                        .foregroundStyle(Theme.textDim)
+                    TextEditor(text: $coachInput)
+                        .font(.body)
+                        .frame(height: 90)
+                        .scrollContentBackground(.hidden)
+                        .padding(6)
+                        .overlay(RoundedRectangle(cornerRadius: 8)
+                            .stroke(Theme.cyanDim.opacity(0.4)))
+                    Button {
+                        coachMe()
+                    } label: {
+                        Label("Coach me", systemImage: "briefcase")
+                    }
+                    .buttonStyle(GradientButtonStyle())
+                    .disabled(coachInput.trimmingCharacters(in: .whitespaces).isEmpty || isCoaching)
+                }
+            }
+            switch coachState {
+            case .idle:
+                EmptyView()
+            case .running:
+                Card {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Coaching\u{2026}")
+                            .font(.callout)
+                            .foregroundStyle(Theme.textDim)
+                    }
+                }
+            case .failed(let message):
+                Card(accent: Theme.danger) {
+                    Text(message).font(.callout).foregroundStyle(Theme.danger)
+                }
+            case .done(let output):
+                coachResult(output)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func coachResult(_ output: CoachOutput) -> some View {
+        coachBlock("The read", [output.read], tint: Theme.cyan)
+        coachBlock("High-leverage moves", output.leverageMoves, tint: Theme.closer)
+        coachBlock("Status fixes", output.statusFixes, tint: Theme.gold)
+        coachBlock("Avoid", output.avoid, tint: Theme.danger)
+    }
+
+    private func coachBlock(_ title: String, _ items: [String], tint: Color) -> some View {
+        Card(accent: tint) {
+            VStack(alignment: .leading, spacing: 6) {
+                SectionLabel(title, tint: tint)
+                ForEach(items, id: \.self) { item in
+                    HStack(alignment: .top, spacing: 6) {
+                        Text("\u{2022}").foregroundStyle(tint)
+                        Text(item).font(.callout).foregroundStyle(Theme.textPrimary)
+                    }
+                }
+            }
+        }
+    }
+
+    private func coachMe() {
+        let situation = coachInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !situation.isEmpty else { return }
+        coachState = .running
+        Task {
+            for await event in app.engine.coach(situation: situation) {
+                switch event {
+                case .modelLoading:
+                    break
+                case .finished(let output):
+                    coachState = .done(output)
+                case .failed(let message):
+                    coachState = .failed(message)
+                }
+            }
         }
     }
 

@@ -121,4 +121,24 @@ public enum PromptBuilder {
         JSON object.
         """
     }
+
+    /// Career-coaching task prompt. Produces a ``CoachOutput`` as JSON.
+    public static func coachPrompt(situation: String) -> String {
+        """
+        Coach the user on this workplace situation as a senior operator would —
+        blunt, strategic, status-aware, and ethically ambitious. Never counsel
+        manipulation, dishonesty, or treating people as instruments.
+
+        SITUATION: \(situation)
+
+        Respond with ONE JSON object and nothing else:
+        {
+          "read": "the honest read of the situation and where the real power sits",
+          "leverageMoves": ["high-leverage moves — ambiguous projects, painful problems, visible outcomes"],
+          "statusFixes": ["blunt fixes to how they signal competence — updates, presence, ownership"],
+          "avoid": ["manipulative impulses to refuse — credit-stealing, blame-shifting, triangulation, over-promotion"]
+        }
+        Output only the JSON object.
+        """
+    }
 }

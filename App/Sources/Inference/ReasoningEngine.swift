@@ -16,6 +16,13 @@ enum PlanEvent: Sendable {
     case failed(String)
 }
 
+/// Events streamed from a career-coaching session to the UI.
+enum CoachEvent: Sendable {
+    case modelLoading(Double)
+    case finished(CoachOutput)
+    case failed(String)
+}
+
 /// Orchestrates a decision session.
 ///
 /// V0 implements a simplified loop: build prompt → stream completion → extract
@@ -66,6 +73,32 @@ final class ReasoningEngine: Sendable {
                     continuation.yield(.finished(output))
                 } catch is CancellationError {
                     // silent — the UI cancelled
+                } catch {
+                    continuation.yield(.failed(error.localizedDescription))
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Run a career-coaching session.
+    func coach(situation: String) -> AsyncStream<CoachEvent> {
+        AsyncStream { continuation in
+            let task = Task {
+                do {
+                    try await provider.prepare { fraction in
+                        continuation.yield(.modelLoading(fraction))
+                    }
+                    let system = PromptBuilder.systemPreamble()
+                    let user = PromptBuilder.coachPrompt(situation: situation)
+                    let raw = try await provider.complete(system: system,
+                                                          user: user,
+                                                          onToken: { _ in })
+                    let output = try JSONExtractor.decode(CoachOutput.self, from: raw)
+                    continuation.yield(.finished(output))
+                } catch is CancellationError {
+                    // silent — cancelled
                 } catch {
                     continuation.yield(.failed(error.localizedDescription))
                 }
