@@ -17,11 +17,17 @@ struct TimetableView: View {
                                 subtitle: Date.now.formatted(date: .abbreviated, time: .omitted))
                     Spacer()
                     Button {
+                        app.planDay()
+                    } label: {
+                        Label("Plan my day", systemImage: "wand.and.stars")
+                    }
+                    .buttonStyle(GradientButtonStyle())
+                    Button {
                         showingAdd.toggle()
                     } label: {
                         Label("Add block", systemImage: "plus")
                     }
-                    .buttonStyle(GradientButtonStyle())
+                    .buttonStyle(.bordered)
                 }
 
                 recoveryBanner
@@ -99,7 +105,8 @@ struct TimetableView: View {
                 .foregroundStyle(Theme.cyan)
                 .frame(width: 60, alignment: .leading)
             Rectangle()
-                .fill(block.done ? Theme.ok : Theme.cyan)
+                .fill(block.done ? Theme.ok
+                      : (block.sourceTaskId != nil ? Theme.closer : Theme.cyan))
                 .frame(width: 3, height: 22)
             Text(block.title)
                 .font(.callout)

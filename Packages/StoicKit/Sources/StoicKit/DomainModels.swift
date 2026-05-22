@@ -121,17 +121,21 @@ public struct TimeBlock: Identifiable, Sendable, Codable {
     /// Length in hours, >= 1.
     public var durationHours: Int
     public var done: Bool
+    /// The micro-task this block was auto-placed from, if any.
+    public var sourceTaskId: UUID?
 
     public init(id: UUID = UUID(),
                 title: String,
                 startHour: Int,
                 durationHours: Int = 1,
-                done: Bool = false) {
+                done: Bool = false,
+                sourceTaskId: UUID? = nil) {
         self.id = id
         self.title = title
         self.startHour = startHour
         self.durationHours = durationHours
         self.done = done
+        self.sourceTaskId = sourceTaskId
     }
 }
 

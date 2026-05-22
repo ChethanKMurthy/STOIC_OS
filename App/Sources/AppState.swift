@@ -200,6 +200,30 @@ final class AppState {
             timeBlocks[index] = block
             store.save(timeBlocks, "timeblocks")
         }
+        // A goal-sourced block completing also completes its micro-task.
+        if let taskId = block.sourceTaskId,
+           let taskIndex = microTasks.firstIndex(where: { $0.id == taskId }) {
+            microTasks[taskIndex].status = block.done ? .done : .pending
+            store.save(microTasks, "microtasks")
+        }
+    }
+
+    /// Auto-fill the day with pending micro-tasks from goals. Regenerates the
+    /// goal-sourced blocks; manually added blocks are left untouched.
+    func planDay() {
+        timeBlocks.removeAll { $0.sourceTaskId != nil }
+        let occupied = Set(timeBlocks.map { $0.startHour })
+        let pending = microTasks.filter { $0.status == .pending }
+        var hour = 9
+        for task in pending.prefix(8) {
+            while hour < 22 && occupied.contains(hour) { hour += 1 }
+            guard hour < 22 else { break }
+            timeBlocks.append(TimeBlock(title: task.title,
+                                        startHour: hour,
+                                        sourceTaskId: task.id))
+            hour += 1
+        }
+        store.save(timeBlocks, "timeblocks")
     }
 
     // MARK: - Brag document
