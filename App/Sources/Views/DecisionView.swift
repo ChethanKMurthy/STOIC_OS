@@ -7,6 +7,7 @@ struct DecisionView: View {
     @State private var vm = DecisionViewModel()
     @State private var outcomeFor: UUID?
     @State private var outcomeText = ""
+    @State private var showSafety = false
 
     var body: some View {
         ScrollView {
@@ -14,17 +15,21 @@ struct DecisionView: View {
                 ScreenTitle("New Decision",
                             subtitle: "Reasoned, on-device. Nothing leaves this Mac.")
 
-                switch vm.phase {
-                case .input:
-                    inputForm
-                case .preparing(let fraction):
-                    preparingView(fraction)
-                case .thinking:
-                    thinkingView
-                case .result(let output):
-                    DecisionResultView(output: output) { vm.reset() }
-                case .failed(let message):
-                    failureView(message)
+                if showSafety {
+                    safetyCard
+                } else {
+                    switch vm.phase {
+                    case .input:
+                        inputForm
+                    case .preparing(let fraction):
+                        preparingView(fraction)
+                    case .thinking:
+                        thinkingView
+                    case .result(let output):
+                        DecisionResultView(output: output) { vm.reset() }
+                    case .failed(let message):
+                        failureView(message)
+                    }
                 }
             }
             .padding(24)
@@ -82,9 +87,13 @@ struct DecisionView: View {
                 }
             }
             Button {
-                vm.run(engine: app.engine, context: whoopContext + memoryContext) { output, record in
-                    app.saveDecision(record)
-                    app.applyConstitutionImpact(direction: output.constitutionImpact.direction)
+                if SafetyCheck.isCrisis(vm.situation) {
+                    showSafety = true
+                } else {
+                    vm.run(engine: app.engine, context: whoopContext + memoryContext) { output, record in
+                        app.saveDecision(record)
+                        app.applyConstitutionImpact(direction: output.constitutionImpact.direction)
+                    }
                 }
             } label: {
                 Label("Think it through", systemImage: "brain.head.profile")
@@ -149,6 +158,31 @@ struct DecisionView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(Theme.cyan)
+        }
+    }
+
+    private var safetyCard: some View {
+        Card(accent: Theme.danger) {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("This needs a person, not a reasoning engine", systemImage: "heart.circle")
+                    .font(.headline)
+                    .foregroundStyle(Theme.danger)
+                Text(SafetyCheck.supportiveMessage)
+                    .font(.callout)
+                    .foregroundStyle(Theme.textPrimary)
+                ForEach(SafetyCheck.resources, id: \.self) { resource in
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(resource.name)
+                            .font(.callout.weight(.medium))
+                            .foregroundStyle(Theme.textPrimary)
+                        Text(resource.contact)
+                            .font(.callout)
+                            .foregroundStyle(Theme.textDim)
+                    }
+                }
+                Button("Back") { showSafety = false }
+                    .buttonStyle(.bordered)
+            }
         }
     }
 
