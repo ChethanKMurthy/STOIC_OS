@@ -4,7 +4,7 @@ import StoicKit
 
 /// The navigable sections of the app.
 enum AppSection: String, CaseIterable, Identifiable {
-    case dashboard, decisions, goals, timetable, timeAudit, vitals, bragDoc, constitution, discipline, settings
+    case dashboard, decisions, goals, timetable, timeAudit, vitals, gym, bragDoc, constitution, discipline, settings
 
     var id: String { rawValue }
 
@@ -16,6 +16,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .timetable:    return "Timetable"
         case .timeAudit:    return "Time Audit"
         case .vitals:       return "Vitals"
+        case .gym:          return "Gym"
         case .bragDoc:      return "Navigator"
         case .constitution: return "Constitution"
         case .discipline:   return "Discipline"
@@ -31,6 +32,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .timetable:    return "calendar.day.timeline.left"
         case .timeAudit:    return "clock.badge.checkmark"
         case .vitals:       return "waveform.path.ecg"
+        case .gym:          return "figure.strengthtraining.traditional"
         case .bragDoc:      return "trophy"
         case .constitution: return "building.columns"
         case .discipline:   return "shield.lefthalf.filled"
@@ -46,6 +48,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .timetable:    return Theme.further
         case .timeAudit:    return Color(red: 0.30, green: 0.80, blue: 0.80)
         case .vitals:       return Theme.danger
+        case .gym:          return Color(red: 1.0, green: 0.55, blue: 0.3)
         case .bragDoc:      return Theme.gold
         case .constitution: return Theme.gold
         case .discipline:   return Color(red: 0.72, green: 0.52, blue: 1.0)
@@ -76,6 +79,9 @@ final class AppState {
     var activeShield: Shield?
     var checkins: [HourlyCheckin]
     var decisions: [DecisionRecord]
+    var workouts: [WorkoutSession]
+    var bodyWeights: [BodyWeightEntry]
+    var targetBodyWeightKg: Double
 
     var modelID: String
     var modelDownloading = false
@@ -105,6 +111,9 @@ final class AppState {
         self.activeShield = store.load(Shield.self, "shield")
         self.checkins = store.load([HourlyCheckin].self, "checkins") ?? []
         self.decisions = store.load([DecisionRecord].self, "decisions") ?? []
+        self.workouts = store.load([WorkoutSession].self, "workouts") ?? []
+        self.bodyWeights = store.load([BodyWeightEntry].self, "bodyweights") ?? []
+        self.targetBodyWeightKg = store.load(Double.self, "targetWeight") ?? 0
         self.engine = ReasoningEngine(provider: LocalLLMProvider(modelID: modelID))
         self.whoop = WhoopService(store: store)
         processOverdueCommitments()
@@ -367,6 +376,39 @@ final class AppState {
             applyConstitutionNudge(-5)
         }
         if changed { store.save(commitments, "commitments") }
+    }
+
+    // MARK: - Gym
+
+    /// The most recent body-weight reading.
+    var currentBodyWeightKg: Double? {
+        bodyWeights.max(by: { $0.date < $1.date })?.weightKg
+    }
+
+    var workoutStreak: Int {
+        GymMath.currentStreak(workoutDates: workouts.map(\.date))
+    }
+
+    func addWorkout(_ session: WorkoutSession) {
+        workouts.insert(session, at: 0)
+        store.save(workouts, "workouts")
+        // A logged session is a deposit into physical discipline.
+        applyConstitutionNudge(2)
+    }
+
+    func deleteWorkout(_ session: WorkoutSession) {
+        workouts.removeAll { $0.id == session.id }
+        store.save(workouts, "workouts")
+    }
+
+    func addBodyWeight(_ weightKg: Double) {
+        bodyWeights.append(BodyWeightEntry(weightKg: weightKg))
+        store.save(bodyWeights, "bodyweights")
+    }
+
+    func setTargetBodyWeight(_ weightKg: Double) {
+        targetBodyWeightKg = weightKg
+        store.save(weightKg, "targetWeight")
     }
 
     // MARK: - Time audit
