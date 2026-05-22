@@ -73,6 +73,7 @@ final class AppState {
     var bragEntries: [BragEntry]
     var contacts: [Contact]
     var commitments: [Commitment]
+    var activeShield: Shield?
     var checkins: [HourlyCheckin]
     var decisions: [DecisionRecord]
 
@@ -98,11 +99,16 @@ final class AppState {
         self.bragEntries = store.load([BragEntry].self, "brag") ?? AppState.seedBrag
         self.contacts = store.load([Contact].self, "contacts") ?? []
         self.commitments = store.load([Commitment].self, "commitments") ?? []
+        self.activeShield = store.load(Shield.self, "shield")
         self.checkins = store.load([HourlyCheckin].self, "checkins") ?? []
         self.decisions = store.load([DecisionRecord].self, "decisions") ?? []
         self.engine = ReasoningEngine(provider: LocalLLMProvider(modelID: modelID))
         self.whoop = WhoopService(store: store)
         processOverdueCommitments()
+        if let shield = activeShield, !shield.isActive {
+            activeShield = nil
+            store.delete("shield")
+        }
     }
 
     // MARK: - Lifecycle
@@ -297,6 +303,18 @@ final class AppState {
     func deleteCommitment(_ commitment: Commitment) {
         commitments.removeAll { $0.id == commitment.id }
         store.save(commitments, "commitments")
+    }
+
+    func startShield(focus: String, minutes: Int) {
+        let shield = Shield(focus: focus,
+                            endsAt: Date().addingTimeInterval(Double(minutes) * 60))
+        activeShield = shield
+        store.save(shield, "shield")
+    }
+
+    func endShield() {
+        activeShield = nil
+        store.delete("shield")
     }
 
     /// A lapsed commitment is broken automatically — and the stake is paid.

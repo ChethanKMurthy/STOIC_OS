@@ -32,3 +32,16 @@ public struct Commitment: Identifiable, Sendable, Codable {
         status == .active && deadline < Date()
     }
 }
+
+/// A focus shield — a protected window. Ending one early needs hard friction.
+public struct Shield: Sendable, Codable, Equatable {
+    public var focus: String
+    public var endsAt: Date
+
+    public init(focus: String, endsAt: Date) {
+        self.focus = focus
+        self.endsAt = endsAt
+    }
+
+    public var isActive: Bool { endsAt > Date() }
+}

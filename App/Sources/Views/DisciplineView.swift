@@ -13,6 +13,12 @@ struct DisciplineView: View {
     @State private var breakReason = ""
     @State private var breakDelay = 0
 
+    @State private var shieldFocus = ""
+    @State private var shieldMinutes = 50
+    @State private var endingShield = false
+    @State private var endShieldReason = ""
+    @State private var endShieldDelay = 0
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -28,6 +34,7 @@ struct DisciplineView: View {
                     .buttonStyle(GradientButtonStyle())
                 }
 
+                shieldSection
                 if showingAdd { addForm }
                 stakeNote
 
@@ -155,6 +162,93 @@ struct DisciplineView: View {
                         .foregroundStyle(Theme.textDim)
                     }
                 }
+            }
+        }
+    }
+
+    // MARK: - Shield
+
+    @ViewBuilder
+    private var shieldSection: some View {
+        if let shield = app.activeShield, shield.isActive {
+            Card(accent: Theme.cyan) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("SHIELD ACTIVE")
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .tracking(3)
+                        .foregroundStyle(Theme.cyan)
+                    Text(shield.focus)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("Ends " + shield.endsAt.formatted(.relative(presentation: .named)))
+                        .font(.system(.callout, design: .monospaced))
+                        .foregroundStyle(Theme.textDim)
+                    ScanLineStrip()
+                    if endingShield {
+                        TextField("Why are you dropping the shield early?", text: $endShieldReason)
+                            .textFieldStyle(.roundedBorder)
+                        HStack {
+                            Button("Cancel") { endingShield = false }
+                            Spacer()
+                            Button(endShieldDelay > 0 ? "Confirm in \(endShieldDelay)s" : "Drop shield") {
+                                app.endShield()
+                                endingShield = false
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(Theme.danger)
+                            .disabled(endShieldDelay > 0
+                                      || endShieldReason.trimmingCharacters(in: .whitespaces).isEmpty)
+                        }
+                    } else {
+                        Button("End shield early") { startEndShield() }
+                            .buttonStyle(.bordered)
+                    }
+                }
+            }
+        } else {
+            Card(accent: Theme.cyan) {
+                VStack(alignment: .leading, spacing: 10) {
+                    SectionLabel("Raise a shield")
+                    TextField("What is this shield protecting?", text: $shieldFocus)
+                        .textFieldStyle(.roundedBorder)
+                    Stepper("Duration  \(shieldMinutes) min",
+                            value: $shieldMinutes, in: 15...180, step: 5)
+                        .font(.system(.callout, design: .monospaced))
+                    if let recovery = recoveryHint {
+                        Text(recovery)
+                            .font(.caption)
+                            .foregroundStyle(Theme.gold)
+                    }
+                    Button {
+                        let focus = shieldFocus.trimmingCharacters(in: .whitespaces)
+                        guard !focus.isEmpty else { return }
+                        app.startShield(focus: focus, minutes: shieldMinutes)
+                        shieldFocus = ""
+                    } label: {
+                        Label("Raise shield", systemImage: "shield.fill")
+                    }
+                    .buttonStyle(GradientButtonStyle())
+                    .disabled(shieldFocus.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+    }
+
+    private var recoveryHint: String? {
+        guard case .connected = app.whoop.state,
+              let recovery = app.whoop.vitals.recoveryPercent,
+              recovery < 34 else { return nil }
+        return "Recovery is \(recovery)% — a shield on recovery, not output, is the call today."
+    }
+
+    private func startEndShield() {
+        endingShield = true
+        endShieldReason = ""
+        endShieldDelay = 5
+        Task {
+            for _ in 0..<5 {
+                try? await Task.sleep(for: .seconds(1))
+                if endingShield { endShieldDelay -= 1 }
             }
         }
     }
