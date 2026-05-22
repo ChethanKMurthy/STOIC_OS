@@ -11,6 +11,8 @@ struct DashboardView: View {
                 ScreenTitle(greeting,
                             subtitle: Date.now.formatted(date: .complete, time: .omitted))
 
+                briefCard
+
                 HStack(alignment: .top, spacing: 16) {
                     goalsCard
                     constitutionCard
@@ -33,6 +35,41 @@ struct DashboardView: View {
         case 5..<12:  return "Good morning."
         case 12..<18: return "Good afternoon."
         default:      return "Good evening."
+        }
+    }
+
+    private var brief: [String] {
+        let total = app.checkins.count
+        let productive = app.checkins.filter { $0.quality == .productive }.count
+        let ratio = total > 0 ? Int(Double(productive) / Double(total) * 100) : nil
+        var recovery: Int?
+        if case .connected = app.whoop.state { recovery = app.whoop.vitals.recoveryPercent }
+        let pending = app.decisions.filter { ($0.outcome ?? "").isEmpty }.count
+        return MorningBrief.compose(BriefInput(
+            integrityScore: app.constitution.integrityScore,
+            drift: app.constitution.drift,
+            recoveryPercent: recovery,
+            productiveRatioPercent: ratio,
+            pendingOutcomes: pending,
+            todayBlockCount: app.timeBlocks.count))
+    }
+
+    private var briefCard: some View {
+        Card(accent: Theme.cyan) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Morning brief")
+                ForEach(Array(brief.enumerated()), id: \.offset) { _, line in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("\u{25B8}")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Theme.cyan)
+                            .padding(.top, 4)
+                        Text(line)
+                            .font(.callout)
+                            .foregroundStyle(Theme.textPrimary)
+                    }
+                }
+            }
         }
     }
 

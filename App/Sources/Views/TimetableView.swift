@@ -24,6 +24,8 @@ struct TimetableView: View {
                     .buttonStyle(GradientButtonStyle())
                 }
 
+                recoveryBanner
+
                 if showingAdd { addForm }
 
                 Card {
@@ -44,6 +46,27 @@ struct TimetableView: View {
                 ComingSoonNote(module: "Automatic planning and Google / Teams calendar sync")
             }
             .padding(24)
+        }
+    }
+
+    @ViewBuilder
+    private var recoveryBanner: some View {
+        if case .connected = app.whoop.state, let recovery = app.whoop.vitals.recoveryPercent {
+            if recovery < 34 {
+                Card(accent: Theme.danger) {
+                    Label("Recovery \(recovery)% — depleted. Defer the demanding blocks today.",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(Theme.danger)
+                }
+            } else if recovery < 67 {
+                Card(accent: Theme.gold) {
+                    Label("Recovery \(recovery)% — moderate. Pace the demanding blocks.",
+                          systemImage: "gauge.medium")
+                        .font(.callout)
+                        .foregroundStyle(Theme.gold)
+                }
+            }
         }
     }
 
