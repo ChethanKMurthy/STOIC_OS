@@ -49,6 +49,11 @@ targets:
         product: MLXLLM
       - package: mlx-swift-examples
         product: MLXLMCommon
+      - target: STOICHelper
+        embed: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Library/LoginItems
 
   STOICHelper:
     type: application

@@ -26,7 +26,10 @@ struct RootView: View {
                 .transition(.opacity)
             }
         }
-        .task { NotificationManager.requestAndSchedule() }
+        .task {
+            NotificationManager.requestAndSchedule()
+            HelperLauncher.launchIfNeeded()
+        }
     }
 }
 
