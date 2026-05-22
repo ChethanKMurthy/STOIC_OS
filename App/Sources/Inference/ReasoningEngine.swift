@@ -30,6 +30,14 @@ enum ModelPrepareEvent: Sendable {
     case failed(String)
 }
 
+/// Events streamed from an AI-training session to the UI.
+enum TrainingEvent: Sendable {
+    case modelLoading(Double)
+    case program(TrainingProgram)
+    case review(TrainingReview)
+    case failed(String)
+}
+
 /// Orchestrates a decision session.
 ///
 /// V0 implements a simplified loop: build prompt → stream completion → extract
@@ -104,6 +112,52 @@ final class ReasoningEngine: Sendable {
                                                           onToken: { _ in })
                     let output = try JSONExtractor.decode(CoachOutput.self, from: raw)
                     continuation.yield(.finished(output))
+                } catch is CancellationError {
+                    // silent — cancelled
+                } catch {
+                    continuation.yield(.failed(error.localizedDescription))
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Generate a weekly training program for a goal.
+    func generateProgram(goal: String, context: String) -> AsyncStream<TrainingEvent> {
+        AsyncStream { continuation in
+            let task = Task {
+                do {
+                    try await provider.prepare { continuation.yield(.modelLoading($0)) }
+                    let raw = try await provider.complete(
+                        system: PromptBuilder.systemPreamble(),
+                        user: PromptBuilder.trainingProgramPrompt(goal: goal, context: context),
+                        onToken: { _ in })
+                    let output = try JSONExtractor.decode(TrainingProgram.self, from: raw)
+                    continuation.yield(.program(output))
+                } catch is CancellationError {
+                    // silent — cancelled
+                } catch {
+                    continuation.yield(.failed(error.localizedDescription))
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Review recent training as a strength coach.
+    func reviewTraining(context: String) -> AsyncStream<TrainingEvent> {
+        AsyncStream { continuation in
+            let task = Task {
+                do {
+                    try await provider.prepare { continuation.yield(.modelLoading($0)) }
+                    let raw = try await provider.complete(
+                        system: PromptBuilder.systemPreamble(),
+                        user: PromptBuilder.trainingReviewPrompt(context: context),
+                        onToken: { _ in })
+                    let output = try JSONExtractor.decode(TrainingReview.self, from: raw)
+                    continuation.yield(.review(output))
                 } catch is CancellationError {
                     // silent — cancelled
                 } catch {

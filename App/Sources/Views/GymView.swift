@@ -14,6 +14,17 @@ struct GymView: View {
     @State private var editingWeight = false
     @State private var recMuscle: MuscleGroup = .chest
     @State private var intakeInput = ""
+    @State private var trainingGoal = ""
+    @State private var trainingState: TrainingState = .idle
+
+    private enum TrainingState {
+        case idle
+        case preparing(Double)
+        case working
+        case program(TrainingProgram)
+        case review(TrainingReview)
+        case failed(String)
+    }
 
     var body: some View {
         ScrollView {
@@ -44,6 +55,7 @@ struct GymView: View {
                 trajectoryCard
                 muscleVolumeCard
                 recordsCard
+                aiTrainingCard
                 recommendationsCard
                 historySection
             }
@@ -351,6 +363,153 @@ struct GymView: View {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private var isTrainingBusy: Bool {
+        switch trainingState {
+        case .preparing, .working: return true
+        default: return false
+        }
+    }
+
+    private var aiTrainingCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("AI training")
+                TextField("Goal for a program (e.g. a stronger bench in 12 weeks)",
+                          text: $trainingGoal)
+                    .textFieldStyle(.roundedBorder)
+                HStack {
+                    Button {
+                        generateProgram()
+                    } label: {
+                        Label("Generate program", systemImage: "doc.text.magnifyingglass")
+                    }
+                    .buttonStyle(GradientButtonStyle())
+                    .disabled(trainingGoal.trimmingCharacters(in: .whitespaces).isEmpty
+                              || isTrainingBusy)
+                    Button {
+                        reviewTraining()
+                    } label: {
+                        Label("Weekly review", systemImage: "checklist")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(app.workouts.isEmpty || isTrainingBusy)
+                }
+                trainingOutput
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var trainingOutput: some View {
+        switch trainingState {
+        case .idle:
+            EmptyView()
+        case .preparing(let fraction):
+            VStack(alignment: .leading, spacing: 4) {
+                HUDBar(value: fraction, accent: gymAccent)
+                Text("Loading model\u{2026} \(Int(fraction * 100))%")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textDim)
+            }
+        case .working:
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Thinking\u{2026}").font(.callout).foregroundStyle(Theme.textDim)
+            }
+        case .failed(let message):
+            Text(message).font(.caption).foregroundStyle(Theme.danger)
+        case .program(let program):
+            VStack(alignment: .leading, spacing: 8) {
+                Text(program.summary).font(.callout).foregroundStyle(Theme.textPrimary)
+                ForEach(Array(program.days.enumerated()), id: \.offset) { _, day in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(day.name)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(gymAccent)
+                        ForEach(day.exercises, id: \.self) { exercise in
+                            Text("\u{2022} \(exercise)")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textDim)
+                        }
+                    }
+                }
+            }
+        case .review(let review):
+            VStack(alignment: .leading, spacing: 8) {
+                Text(review.verdict).font(.callout).foregroundStyle(Theme.textPrimary)
+                reviewBlock("Progressed", review.progressed, tint: Theme.ok)
+                reviewBlock("Stalled", review.stalled, tint: Theme.gold)
+                reviewBlock("Next focus", review.nextFocus, tint: gymAccent)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func reviewBlock(_ title: String, _ items: [String], tint: Color) -> some View {
+        if !items.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.caption.weight(.bold)).foregroundStyle(tint)
+                ForEach(items, id: \.self) { item in
+                    Text("\u{2022} \(item)")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textDim)
+                }
+            }
+        }
+    }
+
+    private func trainingContext() -> String {
+        let recent = app.workouts.prefix(8)
+        let lines = recent.map { session -> String in
+            let date = session.date.formatted(date: .abbreviated, time: .omitted)
+            let exercises = session.exercises.map { logged -> String in
+                let top = logged.sets.max(by: { $0.weightKg < $1.weightKg })
+                let detail = top.map { " \(Int($0.weightKg))kg x\($0.reps)" } ?? ""
+                return logged.name + detail
+            }.joined(separator: ", ")
+            return "\(date): \(exercises)"
+        }
+        var context = lines.joined(separator: "\n")
+        if let weight = app.currentBodyWeightKg {
+            context += "\nBody weight: \(Int(weight)) kg."
+        }
+        return context.isEmpty ? "No training logged yet." : context
+    }
+
+    private func handleTraining(_ event: TrainingEvent) {
+        switch event {
+        case .modelLoading(let fraction):
+            trainingState = fraction < 0.999 ? .preparing(fraction) : .working
+        case .program(let program):
+            trainingState = .program(program)
+        case .review(let review):
+            trainingState = .review(review)
+        case .failed(let message):
+            trainingState = .failed(message)
+        }
+    }
+
+    private func generateProgram() {
+        let goal = trainingGoal.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !goal.isEmpty else { return }
+        trainingState = .preparing(0)
+        Task {
+            for await event in app.engine.generateProgram(goal: goal,
+                                                          context: trainingContext()) {
+                handleTraining(event)
+            }
+        }
+    }
+
+    private func reviewTraining() {
+        trainingState = .preparing(0)
+        Task {
+            for await event in app.engine.reviewTraining(context: trainingContext()) {
+                handleTraining(event)
             }
         }
     }

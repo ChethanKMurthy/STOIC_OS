@@ -141,4 +141,40 @@ public enum PromptBuilder {
         Output only the JSON object.
         """
     }
+
+    /// Training-program task prompt. Produces a ``TrainingProgram`` as JSON.
+    public static func trainingProgramPrompt(goal: String, context: String) -> String {
+        """
+        Design a weekly resistance-training program for this goal.
+
+        GOAL: \(goal)
+        CONTEXT: \(context)
+
+        Respond with ONE JSON object and nothing else:
+        {
+          "summary": "one or two sentences on the approach and the split",
+          "days": [ { "name": "e.g. Push", "exercises": ["3-6 exercises, compounds first"] } ]
+        }
+        Give 3 to 5 training days with standard barbell and dumbbell exercises.
+        Output only the JSON object.
+        """
+    }
+
+    /// Training-review task prompt. Produces a ``TrainingReview`` as JSON.
+    public static func trainingReviewPrompt(context: String) -> String {
+        """
+        Review the user's recent training as a blunt, competent strength coach.
+
+        RECENT TRAINING: \(context)
+
+        Respond with ONE JSON object and nothing else:
+        {
+          "verdict": "the honest headline on the training",
+          "progressed": ["lifts or areas that moved forward"],
+          "stalled": ["lifts or areas that did not"],
+          "nextFocus": ["concrete changes to make next week"]
+        }
+        Output only the JSON object.
+        """
+    }
 }

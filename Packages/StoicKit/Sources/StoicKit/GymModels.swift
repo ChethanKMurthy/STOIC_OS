@@ -168,6 +168,48 @@ public enum ExerciseLibrary {
     }
 }
 
+// MARK: - AI training
+
+/// One training day within a generated program.
+public struct ProgramDay: Codable, Sendable, Equatable {
+    public var name: String
+    public var exercises: [String]
+
+    public init(name: String, exercises: [String]) {
+        self.name = name
+        self.exercises = exercises
+    }
+}
+
+/// An engine-generated training program.
+public struct TrainingProgram: Codable, Sendable, Equatable {
+    public var summary: String
+    public var days: [ProgramDay]
+
+    public init(summary: String, days: [ProgramDay]) {
+        self.summary = summary
+        self.days = days
+    }
+}
+
+/// An engine-generated review of recent training.
+public struct TrainingReview: Codable, Sendable, Equatable {
+    public var verdict: String
+    public var progressed: [String]
+    public var stalled: [String]
+    public var nextFocus: [String]
+
+    public init(verdict: String,
+                progressed: [String],
+                stalled: [String],
+                nextFocus: [String]) {
+        self.verdict = verdict
+        self.progressed = progressed
+        self.stalled = stalled
+        self.nextFocus = nextFocus
+    }
+}
+
 // MARK: - Training math
 
 public enum GymMath {
