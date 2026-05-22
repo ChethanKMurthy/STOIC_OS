@@ -64,6 +64,7 @@ struct MainSplitView: View {
     private var content: some View {
         switch app.section {
         case .dashboard: DashboardView()
+        case .companion: CompanionView()
         case .decisions: DecisionView()
         case .goals:     GoalsView()
         case .timetable: TimetableView()

@@ -30,6 +30,14 @@ enum ModelPrepareEvent: Sendable {
     case failed(String)
 }
 
+/// Events streamed from a companion conversation to the UI.
+enum ChatEvent: Sendable {
+    case modelLoading(Double)
+    case token(String)
+    case finished(String)
+    case failed(String)
+}
+
 /// Events streamed from an AI-training session to the UI.
 enum TrainingEvent: Sendable {
     case modelLoading(Double)
@@ -112,6 +120,29 @@ final class ReasoningEngine: Sendable {
                                                           onToken: { _ in })
                     let output = try JSONExtractor.decode(CoachOutput.self, from: raw)
                     continuation.yield(.finished(output))
+                } catch is CancellationError {
+                    // silent — cancelled
+                } catch {
+                    continuation.yield(.failed(error.localizedDescription))
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Continue the companion conversation, streaming the reply.
+    func converse(transcript: String, context: String) -> AsyncStream<ChatEvent> {
+        AsyncStream { continuation in
+            let task = Task {
+                do {
+                    try await provider.prepare { continuation.yield(.modelLoading($0)) }
+                    let raw = try await provider.complete(
+                        system: PromptBuilder.systemPreamble(),
+                        user: PromptBuilder.conversationPrompt(transcript: transcript,
+                                                               context: context),
+                        onToken: { continuation.yield(.token($0)) })
+                    continuation.yield(.finished(raw))
                 } catch is CancellationError {
                     // silent — cancelled
                 } catch {

@@ -4,13 +4,14 @@ import StoicKit
 
 /// The navigable sections of the app.
 enum AppSection: String, CaseIterable, Identifiable {
-    case dashboard, decisions, goals, timetable, timeAudit, vitals, gym, bragDoc, constitution, discipline, settings
+    case dashboard, companion, decisions, goals, timetable, timeAudit, vitals, gym, bragDoc, constitution, discipline, settings
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .dashboard:    return "Dashboard"
+        case .companion:    return "Companion"
         case .decisions:    return "Decisions"
         case .goals:        return "Goals"
         case .timetable:    return "Timetable"
@@ -27,6 +28,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .dashboard:    return "square.grid.2x2"
+        case .companion:    return "bubble.left.and.bubble.right"
         case .decisions:    return "brain.head.profile"
         case .goals:        return "target"
         case .timetable:    return "calendar.day.timeline.left"
@@ -43,6 +45,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     var accent: Color {
         switch self {
         case .dashboard:    return Theme.accent2
+        case .companion:    return Color(red: 0.45, green: 0.85, blue: 0.7)
         case .decisions:    return Theme.cyan
         case .goals:        return Theme.closer
         case .timetable:    return Theme.further
@@ -79,6 +82,7 @@ final class AppState {
     var activeShield: Shield?
     var checkins: [HourlyCheckin]
     var decisions: [DecisionRecord]
+    var chatMessages: [ChatMessage]
     var workouts: [WorkoutSession]
     var bodyWeights: [BodyWeightEntry]
     var calorieIntake: [CalorieIntakeEntry]
@@ -112,6 +116,7 @@ final class AppState {
         self.activeShield = store.load(Shield.self, "shield")
         self.checkins = store.load([HourlyCheckin].self, "checkins") ?? []
         self.decisions = store.load([DecisionRecord].self, "decisions") ?? []
+        self.chatMessages = store.load([ChatMessage].self, "chat") ?? []
         self.workouts = store.load([WorkoutSession].self, "workouts") ?? []
         self.bodyWeights = store.load([BodyWeightEntry].self, "bodyweights") ?? []
         self.calorieIntake = store.load([CalorieIntakeEntry].self, "calorieIntake") ?? []
@@ -378,6 +383,42 @@ final class AppState {
             applyConstitutionNudge(-5)
         }
         if changed { store.save(commitments, "commitments") }
+    }
+
+    // MARK: - Companion
+
+    func addChatMessage(_ message: ChatMessage) {
+        chatMessages.append(message)
+        store.save(chatMessages, "chat")
+    }
+
+    func clearChat() {
+        chatMessages.removeAll()
+        store.save(chatMessages, "chat")
+    }
+
+    /// A compact snapshot of the user's current state for the companion.
+    var companionContext: String {
+        var lines: [String] = []
+        lines.append("Constitution: integrity \(constitution.integrityScore), drift \(constitution.drift).")
+        if !goals.isEmpty {
+            lines.append("Active goals: " + goals.map(\.title).joined(separator: "; ") + ".")
+        }
+        if case .connected = whoop.state, let recovery = whoop.vitals.recoveryPercent {
+            lines.append("WHOOP recovery today: \(recovery)%.")
+        }
+        if workoutStreak > 0 {
+            lines.append("Workout streak: \(workoutStreak) days.")
+        }
+        let openLoops = decisions.filter { ($0.outcome ?? "").isEmpty }.count
+        if openLoops > 0 {
+            lines.append("\(openLoops) decisions logged without a recorded outcome.")
+        }
+        let activeCommitments = commitments.filter { $0.status == .active }.count
+        if activeCommitments > 0 {
+            lines.append("\(activeCommitments) active commitments.")
+        }
+        return lines.joined(separator: "\n")
     }
 
     // MARK: - Gym

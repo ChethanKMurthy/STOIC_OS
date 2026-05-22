@@ -177,4 +177,22 @@ public enum PromptBuilder {
         Output only the JSON object.
         """
     }
+
+    /// The ongoing-conversation prompt for the companion.
+    public static func conversationPrompt(transcript: String, context: String) -> String {
+        """
+        This is an ongoing conversation with the user. You are their private
+        reasoning companion — direct, concise, grounded, never flattering. You
+        hold them to who they said they would become.
+
+        WHAT YOU KNOW ABOUT THEM RIGHT NOW:
+        \(context)
+
+        CONVERSATION SO FAR:
+        \(transcript)
+
+        Write STOIC OS's next reply — one focused response in plain text. No
+        JSON, no preamble, no restating the question.
+        """
+    }
 }
