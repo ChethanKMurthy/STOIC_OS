@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 import StoicKit
 
 private let gymAccent = Color(red: 1.0, green: 0.55, blue: 0.3)
@@ -30,6 +31,10 @@ struct GymView: View {
                     streakCard
                     bodyWeightCard
                 }
+                strengthCard
+                trajectoryCard
+                muscleVolumeCard
+                recordsCard
                 recommendationsCard
                 historySection
             }
@@ -108,6 +113,156 @@ struct GymView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var strengthCard: some View {
+        let score = GymAnalysis.strengthScore(sessions: app.workouts,
+                                              bodyWeightKg: app.currentBodyWeightKg ?? 0)
+        return Card(accent: gymAccent) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Strength score", tint: gymAccent)
+                if let score {
+                    HStack(spacing: 14) {
+                        RingGauge(value: Double(score) / 100, accent: gymAccent, lineWidth: 7)
+                            .frame(width: 64, height: 64)
+                            .overlay(
+                                Text("\(score)")
+                                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                                    .foregroundStyle(Theme.textPrimary)
+                            )
+                        Text("Your main lifts measured against bodyweight-multiple standards \u{2014} novice to elite.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textDim)
+                    }
+                } else {
+                    Text("Log the big lifts (bench, squat, deadlift, overhead press) and your body weight to earn a strength score.")
+                        .font(.callout)
+                        .foregroundStyle(Theme.textDim)
+                }
+            }
+        }
+    }
+
+    private var trajectoryCard: some View {
+        Card(accent: gymAccent) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Body-weight trajectory", tint: gymAccent)
+                if app.bodyWeights.count < 2 {
+                    Text("Log your body weight over time to see the trajectory.")
+                        .font(.callout)
+                        .foregroundStyle(Theme.textDim)
+                } else {
+                    Chart {
+                        ForEach(app.bodyWeights.sorted { $0.date < $1.date }) { entry in
+                            LineMark(x: .value("Date", entry.date),
+                                     y: .value("kg", entry.weightKg))
+                                .foregroundStyle(gymAccent)
+                                .interpolationMethod(.catmullRom)
+                        }
+                        if app.targetBodyWeightKg > 0 {
+                            RuleMark(y: .value("Target", app.targetBodyWeightKg))
+                                .foregroundStyle(Theme.cyan.opacity(0.7))
+                                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        }
+                    }
+                    .frame(height: 150)
+                    if let verdict = trajectoryVerdict {
+                        Text(verdict).font(.caption).foregroundStyle(Theme.textDim)
+                    }
+                }
+            }
+        }
+    }
+
+    private var trajectoryVerdict: String? {
+        guard app.targetBodyWeightKg > 0, let current = app.currentBodyWeightKg else { return nil }
+        if let days = GymAnalysis.daysToTarget(app.bodyWeights, target: app.targetBodyWeightKg) {
+            if days <= 0 { return "You are at your target. Hold it." }
+            let weeks = max(1, days / 7)
+            return "At the current rate you reach \(String(format: "%.1f", app.targetBodyWeightKg)) kg in about \(weeks) week\(weeks == 1 ? "" : "s")."
+        }
+        let gap = abs(current - app.targetBodyWeightKg)
+        return "You are \(String(format: "%.1f", gap)) kg from target and not moving toward it. The rate, not the wish, decides this."
+    }
+
+    private var muscleVolumeCard: some View {
+        let volume = GymAnalysis.weeklyVolume(in: app.workouts)
+        let peak = max(volume.values.max() ?? 0, 1)
+        return Card(accent: gymAccent) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Muscle volume \u{2014} last 7 days", tint: gymAccent)
+                ForEach(MuscleGroup.allCases) { muscle in
+                    let sets = volume[muscle] ?? 0
+                    HStack(spacing: 8) {
+                        Text(muscle.label)
+                            .font(.caption)
+                            .frame(width: 78, alignment: .leading)
+                            .foregroundStyle(Theme.textPrimary)
+                        HUDBar(value: Double(sets) / Double(peak), accent: heatColor(sets))
+                        Text("\(sets)")
+                            .font(.system(.caption, design: .monospaced))
+                            .frame(width: 26, alignment: .trailing)
+                            .foregroundStyle(Theme.textDim)
+                    }
+                }
+                if let note = imbalanceNote(volume) {
+                    Text(note).font(.caption).foregroundStyle(Theme.gold)
+                }
+            }
+        }
+    }
+
+    private func heatColor(_ sets: Int) -> Color {
+        switch sets {
+        case 0:    return Theme.textDim.opacity(0.4)
+        case 1...6: return gymAccent.opacity(0.6)
+        default:   return gymAccent
+        }
+    }
+
+    private func imbalanceNote(_ volume: [MuscleGroup: Int]) -> String? {
+        let push = (volume[.chest] ?? 0) + (volume[.shoulders] ?? 0)
+        let pull = volume[.back] ?? 0
+        if push >= 6 && pull == 0 {
+            return "All push, no pull this week \u{2014} you are building an imbalance."
+        }
+        if pull >= 6 && push == 0 {
+            return "All pull, no push this week \u{2014} balance it."
+        }
+        let trained = volume.values.filter { $0 > 0 }.count
+        if trained > 0 && trained <= 2 {
+            return "Only \(trained) muscle group\(trained == 1 ? "" : "s") trained this week."
+        }
+        return nil
+    }
+
+    private var recordsCard: some View {
+        let records = GymAnalysis.personalRecords(in: app.workouts)
+        return Card(accent: gymAccent) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Personal records", tint: gymAccent)
+                if records.isEmpty {
+                    Text("No lifts logged yet.")
+                        .font(.callout)
+                        .foregroundStyle(Theme.textDim)
+                } else {
+                    ForEach(records.prefix(6), id: \.exercise) { record in
+                        HStack {
+                            Text(record.exercise)
+                                .font(.callout)
+                                .foregroundStyle(Theme.textPrimary)
+                            Spacer()
+                            Text("\(Int(record.oneRepMax)) kg")
+                                .font(.system(.callout, design: .rounded).weight(.semibold))
+                                .foregroundStyle(gymAccent)
+                            Text("est. 1RM")
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundStyle(Theme.textDim)
+                        }
+                    }
+                }
+            }
         }
     }
 

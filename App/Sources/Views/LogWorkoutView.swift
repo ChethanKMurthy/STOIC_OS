@@ -128,10 +128,13 @@ struct LogWorkoutView: View {
     }
 
     private func addExercise(_ exercise: Exercise) {
+        // Pre-fill from the last time this lift was trained — a target to beat.
+        let lastTop = GymAnalysis.lastTopSet(exercise: exercise.name, in: app.workouts)
+        let firstSet = WorkoutSet(weightKg: lastTop?.weightKg ?? 0, reps: lastTop?.reps ?? 0)
         exercises.append(LoggedExercise(
             name: exercise.name,
             muscle: exercise.muscle,
-            sets: [WorkoutSet(weightKg: 0, reps: 0)]))
+            sets: [firstSet]))
     }
 
     private func addSet(to logged: Binding<LoggedExercise>) {
