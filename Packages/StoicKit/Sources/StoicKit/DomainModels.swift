@@ -108,6 +108,29 @@ public struct MicroTask: Identifiable, Sendable, Codable {
     }
 }
 
+/// A scheduled block on the daily timetable.
+public struct TimeBlock: Identifiable, Sendable, Codable {
+    public var id: UUID
+    public var title: String
+    /// Hour the block starts, 0 ... 23.
+    public var startHour: Int
+    /// Length in hours, >= 1.
+    public var durationHours: Int
+    public var done: Bool
+
+    public init(id: UUID = UUID(),
+                title: String,
+                startHour: Int,
+                durationHours: Int = 1,
+                done: Bool = false) {
+        self.id = id
+        self.title = title
+        self.startHour = startHour
+        self.durationHours = durationHours
+        self.done = done
+    }
+}
+
 // MARK: - Time Audit
 
 /// How an hour was spent. V0 grades on a two-value scale.

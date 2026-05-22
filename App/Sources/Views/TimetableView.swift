@@ -1,44 +1,126 @@
 import SwiftUI
+import StoicKit
 
-/// Daily timetable screen.
-/// V0 renders the layout; the planner and calendar sync are planned.
+/// Daily timetable screen — editable blocks. Automatic planning and calendar
+/// sync are planned.
 struct TimetableView: View {
-    private let sample: [(String, String, String)] = [
-        ("09:00", "Deep work — focused block", "Goal"),
-        ("11:00", "Reading", "Activity"),
-        ("14:00", "1:1 prep", "Corp Navigator"),
-        ("16:00", "Exercise", "Goal")
-    ]
+    @Environment(AppState.self) private var app
+    @State private var showingAdd = false
+    @State private var newTitle = ""
+    @State private var newHour = 9
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                ScreenTitle("Timetable",
-                            subtitle: Date.now.formatted(date: .abbreviated, time: .omitted))
+                HStack {
+                    ScreenTitle("Timetable",
+                                subtitle: Date.now.formatted(date: .abbreviated, time: .omitted))
+                    Spacer()
+                    Button {
+                        showingAdd.toggle()
+                    } label: {
+                        Label("Add block", systemImage: "plus")
+                    }
+                    .buttonStyle(GradientButtonStyle())
+                }
+
+                if showingAdd { addForm }
 
                 Card {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 12) {
                         SectionLabel("Today")
-                        ForEach(sample, id: \.0) { row in
-                            HStack(spacing: 12) {
-                                Text(row.0)
-                                    .font(.callout.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 52, alignment: .leading)
-                                Rectangle().frame(width: 3).foregroundStyle(.tint)
-                                Text(row.1).font(.callout)
-                                Spacer()
-                                Text(row.2)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                        if app.timeBlocks.isEmpty {
+                            Text("No blocks scheduled. Add one above.")
+                                .font(.callout)
+                                .foregroundStyle(Theme.textDim)
+                        } else {
+                            ForEach(app.timeBlocks.sorted { $0.startHour < $1.startHour }) { block in
+                                blockRow(block)
                             }
                         }
                     }
                 }
 
-                ComingSoonNote(module: "Daily timetable generation, re-planning, and calendar sync")
+                ComingSoonNote(module: "Automatic planning and Google / Teams calendar sync")
             }
             .padding(24)
         }
+    }
+
+    private var addForm: some View {
+        Card(accent: Theme.further) {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("New block", tint: Theme.further)
+                TextField("What is this block?", text: $newTitle)
+                    .textFieldStyle(.roundedBorder)
+                Stepper("Start  \(hourLabel(newHour))", value: $newHour, in: 0...23)
+                    .font(.system(.callout, design: .monospaced))
+                HStack {
+                    Spacer()
+                    Button("Cancel") { reset() }
+                    Button("Add") {
+                        guard !newTitle.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                        app.addTimeBlock(TimeBlock(title: newTitle, startHour: newHour))
+                        reset()
+                    }
+                    .buttonStyle(GradientButtonStyle())
+                }
+            }
+        }
+    }
+
+    private func blockRow(_ block: TimeBlock) -> some View {
+        HStack(spacing: 12) {
+            Text(hourLabel(block.startHour))
+                .font(.system(.callout, design: .monospaced))
+                .foregroundStyle(Theme.cyan)
+                .frame(width: 60, alignment: .leading)
+            Rectangle()
+                .fill(block.done ? Theme.ok : Theme.cyan)
+                .frame(width: 3, height: 22)
+            Text(block.title)
+                .font(.callout)
+                .foregroundStyle(block.done ? Theme.textDim : Theme.textPrimary)
+                .strikethrough(block.done)
+            Spacer()
+            Button { move(block, by: -1) } label: {
+                Image(systemName: "chevron.up")
+            }
+            .buttonStyle(.plain).foregroundStyle(Theme.textDim)
+            Button { move(block, by: 1) } label: {
+                Image(systemName: "chevron.down")
+            }
+            .buttonStyle(.plain).foregroundStyle(Theme.textDim)
+            Button { toggleDone(block) } label: {
+                Image(systemName: block.done ? "checkmark.circle.fill" : "circle")
+            }
+            .buttonStyle(.plain).foregroundStyle(block.done ? Theme.ok : Theme.textDim)
+            Button { app.deleteTimeBlock(block) } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.plain).foregroundStyle(Theme.danger)
+        }
+    }
+
+    private func hourLabel(_ hour: Int) -> String {
+        String(format: "%02d:00", ((hour % 24) + 24) % 24)
+    }
+
+    private func move(_ block: TimeBlock, by delta: Int) {
+        var updated = block
+        updated.startHour = min(23, max(0, updated.startHour + delta))
+        app.updateTimeBlock(updated)
+    }
+
+    private func toggleDone(_ block: TimeBlock) {
+        var updated = block
+        updated.done.toggle()
+        app.updateTimeBlock(updated)
+    }
+
+    private func reset() {
+        newTitle = ""
+        newHour = 9
+        showingAdd = false
     }
 }

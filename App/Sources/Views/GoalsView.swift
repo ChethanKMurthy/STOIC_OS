@@ -57,21 +57,34 @@ struct GoalsView: View {
     }
 
     private func goalCard(_ goal: Goal) -> some View {
-        Card {
+        Card(accent: Theme.closer) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(goal.title).font(.headline)
+                HStack(alignment: .top) {
+                    Text(goal.title)
+                        .font(.headline)
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Button {
+                        app.deleteGoal(goal)
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Theme.danger)
+                    .help("Delete goal")
+                }
                 HStack {
-                    ProgressView(value: goal.progress)
+                    HUDBar(value: goal.progress, accent: Theme.closer)
                     Text("\(Int(goal.progress * 100))%")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(Theme.textDim)
                 }
                 if !goal.timeline.isEmpty {
-                    Text(goal.timeline).font(.caption).foregroundStyle(.secondary)
+                    Text(goal.timeline).font(.caption).foregroundStyle(Theme.textDim)
                 }
                 if !goal.baseline.isEmpty {
                     Text("Baseline: \(goal.baseline)")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Theme.textDim)
                 }
             }
         }
