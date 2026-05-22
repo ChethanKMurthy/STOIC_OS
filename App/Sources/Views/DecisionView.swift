@@ -45,6 +45,20 @@ struct DecisionView: View {
                 + ". Factor their physical and mental state into the advice."]
     }
 
+    /// Relevant past decisions retrieved from the user's own history.
+    private var memoryContext: [String] {
+        let situation = vm.situation.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !situation.isEmpty else { return [] }
+        let relevant = MemoryRetrieval.relevant(to: situation, from: app.decisions, limit: 4)
+        guard !relevant.isEmpty else { return [] }
+        let lines = relevant.map { record -> String in
+            let outcome = (record.outcome?.isEmpty == false)
+                ? record.outcome! : "outcome not recorded"
+            return "- \"\(record.situation)\" -> \(outcome)"
+        }
+        return ["Relevant history from the user's own past decisions:"] + lines
+    }
+
     private var inputForm: some View {
         VStack(alignment: .leading, spacing: 14) {
             Card {
@@ -68,7 +82,7 @@ struct DecisionView: View {
                 }
             }
             Button {
-                vm.run(engine: app.engine, context: whoopContext) { output, record in
+                vm.run(engine: app.engine, context: whoopContext + memoryContext) { output, record in
                     app.saveDecision(record)
                     app.applyConstitutionImpact(direction: output.constitutionImpact.direction)
                 }
