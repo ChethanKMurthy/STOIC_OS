@@ -68,6 +68,7 @@ struct MainSplitView: View {
         case .vitals:    VitalsView()
         case .bragDoc:      BragDocView()
         case .constitution: ConstitutionView()
+        case .discipline:   DisciplineView()
         case .settings:     SettingsView()
         }
     }

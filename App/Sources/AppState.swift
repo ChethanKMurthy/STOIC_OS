@@ -4,7 +4,7 @@ import StoicKit
 
 /// The navigable sections of the app.
 enum AppSection: String, CaseIterable, Identifiable {
-    case dashboard, decisions, goals, timetable, timeAudit, vitals, bragDoc, constitution, settings
+    case dashboard, decisions, goals, timetable, timeAudit, vitals, bragDoc, constitution, discipline, settings
 
     var id: String { rawValue }
 
@@ -18,6 +18,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .vitals:       return "Vitals"
         case .bragDoc:      return "Navigator"
         case .constitution: return "Constitution"
+        case .discipline:   return "Discipline"
         case .settings:     return "Settings"
         }
     }
@@ -32,6 +33,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .vitals:       return "waveform.path.ecg"
         case .bragDoc:      return "trophy"
         case .constitution: return "building.columns"
+        case .discipline:   return "shield.lefthalf.filled"
         case .settings:     return "gearshape"
         }
     }
@@ -46,6 +48,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .vitals:       return Theme.danger
         case .bragDoc:      return Theme.gold
         case .constitution: return Theme.gold
+        case .discipline:   return Color(red: 0.72, green: 0.52, blue: 1.0)
         case .settings:     return Theme.neutral
         }
     }
@@ -69,6 +72,7 @@ final class AppState {
     var timeBlocks: [TimeBlock]
     var bragEntries: [BragEntry]
     var contacts: [Contact]
+    var commitments: [Commitment]
     var checkins: [HourlyCheckin]
     var decisions: [DecisionRecord]
 
@@ -93,10 +97,12 @@ final class AppState {
         self.timeBlocks = store.load([TimeBlock].self, "timeblocks") ?? AppState.seedBlocks
         self.bragEntries = store.load([BragEntry].self, "brag") ?? AppState.seedBrag
         self.contacts = store.load([Contact].self, "contacts") ?? []
+        self.commitments = store.load([Commitment].self, "commitments") ?? []
         self.checkins = store.load([HourlyCheckin].self, "checkins") ?? []
         self.decisions = store.load([DecisionRecord].self, "decisions") ?? []
         self.engine = ReasoningEngine(provider: LocalLLMProvider(modelID: modelID))
         self.whoop = WhoopService(store: store)
+        processOverdueCommitments()
     }
 
     // MARK: - Lifecycle
@@ -264,6 +270,46 @@ final class AppState {
     func deleteContact(_ contact: Contact) {
         contacts.removeAll { $0.id == contact.id }
         store.save(contacts, "contacts")
+    }
+
+    // MARK: - Commitments
+
+    func addCommitment(_ commitment: Commitment) {
+        commitments.append(commitment)
+        store.save(commitments, "commitments")
+    }
+
+    func keepCommitment(_ commitment: Commitment) {
+        guard let index = commitments.firstIndex(where: { $0.id == commitment.id }) else { return }
+        commitments[index].status = .kept
+        store.save(commitments, "commitments")
+        applyConstitutionNudge(3)
+    }
+
+    func breakCommitment(_ commitment: Commitment, reason: String) {
+        guard let index = commitments.firstIndex(where: { $0.id == commitment.id }) else { return }
+        commitments[index].status = .broken
+        commitments[index].brokenReason = reason
+        store.save(commitments, "commitments")
+        applyConstitutionNudge(-5)
+    }
+
+    func deleteCommitment(_ commitment: Commitment) {
+        commitments.removeAll { $0.id == commitment.id }
+        store.save(commitments, "commitments")
+    }
+
+    /// A lapsed commitment is broken automatically — and the stake is paid.
+    private func processOverdueCommitments() {
+        var changed = false
+        for index in commitments.indices
+        where commitments[index].status == .active && commitments[index].deadline < Date() {
+            commitments[index].status = .broken
+            commitments[index].brokenReason = "Deadline passed without action."
+            changed = true
+            applyConstitutionNudge(-5)
+        }
+        if changed { store.save(commitments, "commitments") }
     }
 
     // MARK: - Time audit
