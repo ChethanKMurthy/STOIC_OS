@@ -21,10 +21,8 @@ struct DashboardView: View {
                     app.section = .decisions
                 } label: {
                     Label("New decision", systemImage: "brain.head.profile")
-                        .padding(.horizontal, 6)
                 }
-                .controlSize(.large)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(GradientButtonStyle())
             }
             .padding(24)
         }
@@ -39,9 +37,9 @@ struct DashboardView: View {
     }
 
     private var goalsCard: some View {
-        Card {
+        Card(accent: Theme.closer) {
             VStack(alignment: .leading, spacing: 10) {
-                SectionLabel("Active goals")
+                SectionLabel("Active goals", tint: Theme.closer)
                 if app.goals.isEmpty {
                     Text("No goals yet. Add one in the Goals tab.")
                         .font(.callout).foregroundStyle(.secondary)
@@ -60,9 +58,9 @@ struct DashboardView: View {
     }
 
     private var idealSelfCard: some View {
-        Card {
+        Card(accent: Theme.pink) {
             VStack(alignment: .leading, spacing: 8) {
-                SectionLabel("Ideal Self")
+                SectionLabel("Ideal Self", tint: Theme.pink)
                 Text(app.idealSelf.narrative.isEmpty
                      ? "Not set yet."
                      : app.idealSelf.narrative)
@@ -78,9 +76,9 @@ struct DashboardView: View {
     }
 
     private var auditCard: some View {
-        Card {
+        Card(accent: Theme.further) {
             VStack(alignment: .leading, spacing: 6) {
-                SectionLabel("Time audit")
+                SectionLabel("Time audit", tint: Theme.further)
                 if app.checkins.isEmpty {
                     Text("No hours logged yet. STOIC OS grades how each hour was spent — start in the Time Audit tab.")
                         .font(.callout).foregroundStyle(.secondary)

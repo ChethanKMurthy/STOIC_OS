@@ -33,6 +33,7 @@ struct AppLockView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.appBackground.ignoresSafeArea())
         .onAppear { authenticate() }
     }
 

@@ -53,10 +53,8 @@ struct DecisionView: View {
                 vm.run(engine: app.engine) { record in app.saveDecision(record) }
             } label: {
                 Label("Think it through", systemImage: "brain.head.profile")
-                    .padding(.horizontal, 6)
             }
-            .controlSize(.large)
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(GradientButtonStyle())
             .disabled(vm.situation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
             if !app.decisions.isEmpty {

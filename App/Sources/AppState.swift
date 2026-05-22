@@ -33,6 +33,19 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .settings:  return "gearshape"
         }
     }
+
+    var accent: Color {
+        switch self {
+        case .dashboard: return Theme.accent2
+        case .decisions: return Theme.accent
+        case .goals:     return Theme.closer
+        case .timetable: return Theme.further
+        case .timeAudit: return Color(red: 0.30, green: 0.80, blue: 0.80)
+        case .bragDoc:   return Theme.gold
+        case .idealSelf: return Theme.pink
+        case .settings:  return Theme.neutral
+        }
+    }
 }
 
 /// App-wide observable state. Owns persistence and the reasoning engine.

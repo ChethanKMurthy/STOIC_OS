@@ -27,14 +27,22 @@ struct MainSplitView: View {
         @Bindable var app = app
         NavigationSplitView {
             List(AppSection.allCases, selection: $app.section) { section in
-                Label(section.title, systemImage: section.systemImage)
-                    .tag(section)
+                Label {
+                    Text(section.title)
+                } icon: {
+                    Image(systemName: section.systemImage)
+                        .foregroundStyle(section.accent)
+                }
+                .tag(section)
             }
-            .navigationSplitViewColumnWidth(min: 190, ideal: 210, max: 240)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 216, max: 252)
             .navigationTitle("STOIC OS")
         } detail: {
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            ZStack {
+                Theme.appBackground.ignoresSafeArea()
+                content
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
         }
     }
 

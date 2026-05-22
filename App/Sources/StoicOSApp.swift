@@ -12,7 +12,9 @@ struct StoicOSApp: App {
         WindowGroup {
             RootView()
                 .environment(app)
-                .frame(minWidth: 940, minHeight: 660)
+                .frame(minWidth: 960, minHeight: 680)
+                .preferredColorScheme(.dark)
+                .tint(Theme.accent)
         }
         .windowResizability(.contentSize)
     }
@@ -20,9 +22,9 @@ struct StoicOSApp: App {
 
 /// Build-wide configuration constants.
 enum AppConfig {
-    /// Default MLX model. Small (~1.8 GB) so first-run download is reliable.
-    /// Change in Settings to a 7B/14B for stronger reasoning.
-    static let defaultModelID = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+    /// Default MLX model — a strong 14B reasoning model (~8 GB at 4-bit),
+    /// comfortable on Apple Silicon with 24 GB. Changeable in Settings.
+    static let defaultModelID = "mlx-community/Qwen3-14B-4bit"
     static let appName = "STOIC OS"
     static let version = "0.1.0 (V0)"
 }

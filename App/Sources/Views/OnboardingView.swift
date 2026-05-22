@@ -52,6 +52,7 @@ struct OnboardingView: View {
         .padding(36)
         .frame(maxWidth: 760)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.appBackground.ignoresSafeArea())
     }
 
     private var welcomeStep: some View {
