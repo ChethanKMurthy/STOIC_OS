@@ -68,7 +68,7 @@ struct SettingsView: View {
                     Spacer()
                     whoopConnectButton
                 }
-                Text("Stored only in your macOS Keychain. Redirect URL: http://localhost:8970/whoop/callback")
+                Text("Stored locally on this Mac. Redirect URL: http://localhost:8970/whoop/callback")
                     .font(.caption2).foregroundStyle(Theme.textDim)
             }
         }

@@ -48,8 +48,8 @@ can revoke that access at any time from the provider's account settings.
 
 ## Storage and security
 
-Your data is stored in the application's local data folder on your Mac. Access
-tokens for connected services are stored in the macOS Keychain.
+Your data — including access tokens for connected services such as WHOOP — is
+stored in the application's local data folder on your Mac.
 
 ## Your control
 

@@ -46,10 +46,17 @@ private struct WhoopTokens: Codable {
     var expiry: Date
 }
 
-private enum WhoopKey {
-    static let clientID = "whoop.clientID"
-    static let clientSecret = "whoop.clientSecret"
-    static let tokens = "whoop.tokens"
+/// WHOOP Client ID + Secret. Stored in the app's local data folder, like the
+/// rest of the app's data — no Keychain, so no authorization prompt.
+private struct WhoopCredentials: Codable {
+    var clientID: String
+    var clientSecret: String
+}
+
+private enum WhoopStoreKey {
+    static let credentials = "whoop_credentials"
+    static let tokens = "whoop_tokens"
+    static let vitals = "whoop_vitals"
 }
 
 // MARK: - Service
@@ -66,34 +73,34 @@ final class WhoopService {
 
     init(store: FileStore) {
         self.store = store
-        self.vitals = store.load(WhoopVitals.self, "whoop_vitals") ?? WhoopVitals()
-        if Keychain.get(WhoopKey.tokens) != nil {
+        self.vitals = store.load(WhoopVitals.self, WhoopStoreKey.vitals) ?? WhoopVitals()
+        if store.load(WhoopTokens.self, WhoopStoreKey.tokens) != nil {
             state = .connected
         }
     }
 
     var hasCredentials: Bool {
-        !(Keychain.get(WhoopKey.clientID) ?? "").isEmpty
-            && !(Keychain.get(WhoopKey.clientSecret) ?? "").isEmpty
+        guard let creds = loadCredentials() else { return false }
+        return !creds.clientID.isEmpty && !creds.clientSecret.isEmpty
     }
 
-    var clientID: String { Keychain.get(WhoopKey.clientID) ?? "" }
+    var clientID: String { loadCredentials()?.clientID ?? "" }
 
     func saveCredentials(clientID: String, clientSecret: String) {
-        Keychain.set(clientID, for: WhoopKey.clientID)
-        Keychain.set(clientSecret, for: WhoopKey.clientSecret)
+        store.save(WhoopCredentials(clientID: clientID, clientSecret: clientSecret),
+                   WhoopStoreKey.credentials)
     }
 
     func connect() async {
-        guard hasCredentials,
-              let id = Keychain.get(WhoopKey.clientID),
-              let secret = Keychain.get(WhoopKey.clientSecret) else {
+        guard let creds = loadCredentials(),
+              !creds.clientID.isEmpty, !creds.clientSecret.isEmpty else {
             state = .failed("Enter your WHOOP Client ID and Secret first.")
             return
         }
         state = .connecting
         do {
-            let tokens = try await WhoopAuth.authorize(clientID: id, clientSecret: secret)
+            let tokens = try await WhoopAuth.authorize(clientID: creds.clientID,
+                                                       clientSecret: creds.clientSecret)
             saveTokens(tokens)
             state = .connected
             await sync()
@@ -103,9 +110,9 @@ final class WhoopService {
     }
 
     func disconnect() {
-        Keychain.delete(WhoopKey.tokens)
+        store.delete(WhoopStoreKey.tokens)
         vitals = WhoopVitals()
-        store.save(vitals, "whoop_vitals")
+        store.save(vitals, WhoopStoreKey.vitals)
         state = .disconnected
     }
 
@@ -116,13 +123,17 @@ final class WhoopService {
             var fresh = try await WhoopClient.fetchVitals(accessToken: token)
             fresh.lastSync = Date()
             vitals = fresh
-            store.save(vitals, "whoop_vitals")
+            store.save(vitals, WhoopStoreKey.vitals)
         } catch {
             state = .failed(error.localizedDescription)
         }
     }
 
-    // MARK: Tokens
+    // MARK: Credentials & tokens
+
+    private func loadCredentials() -> WhoopCredentials? {
+        store.load(WhoopCredentials.self, WhoopStoreKey.credentials)
+    }
 
     private func validAccessToken() async throws -> String {
         guard let tokens = loadTokens() else {
@@ -131,27 +142,22 @@ final class WhoopService {
         if tokens.expiry > Date().addingTimeInterval(60) {
             return tokens.accessToken
         }
-        guard let id = Keychain.get(WhoopKey.clientID),
-              let secret = Keychain.get(WhoopKey.clientSecret) else {
+        guard let creds = loadCredentials() else {
             throw WhoopError.http("Missing WHOOP credentials.")
         }
         let refreshed = try await WhoopAuth.refresh(refreshToken: tokens.refreshToken,
-                                                    clientID: id, clientSecret: secret)
+                                                    clientID: creds.clientID,
+                                                    clientSecret: creds.clientSecret)
         saveTokens(refreshed)
         return refreshed.accessToken
     }
 
     private func saveTokens(_ tokens: WhoopTokens) {
-        if let data = try? JSONEncoder().encode(tokens),
-           let string = String(data: data, encoding: .utf8) {
-            Keychain.set(string, for: WhoopKey.tokens)
-        }
+        store.save(tokens, WhoopStoreKey.tokens)
     }
 
     private func loadTokens() -> WhoopTokens? {
-        guard let string = Keychain.get(WhoopKey.tokens),
-              let data = string.data(using: .utf8) else { return nil }
-        return try? JSONDecoder().decode(WhoopTokens.self, from: data)
+        store.load(WhoopTokens.self, WhoopStoreKey.tokens)
     }
 }
 

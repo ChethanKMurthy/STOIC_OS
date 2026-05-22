@@ -33,6 +33,11 @@ final class FileStore: @unchecked Sendable {
         try? data.write(to: url, options: .atomic)
     }
 
+    func delete(_ name: String) {
+        let url = directory.appendingPathComponent("\(name).json")
+        try? FileManager.default.removeItem(at: url)
+    }
+
     func flag(_ key: String) -> Bool { defaults.bool(forKey: "stoic.\(key)") }
     func setFlag(_ key: String, _ value: Bool) { defaults.set(value, forKey: "stoic.\(key)") }
     func string(_ key: String) -> String? { defaults.string(forKey: "stoic.\(key)") }
