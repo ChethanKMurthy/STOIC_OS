@@ -22,6 +22,7 @@ struct BragDocView: View {
 
     private enum CoachState {
         case idle
+        case preparing(Double)
         case running
         case done(CoachOutput)
         case failed(String)
@@ -207,8 +208,10 @@ struct BragDocView: View {
     // MARK: - Career coaching
 
     private var isCoaching: Bool {
-        if case .running = coachState { return true }
-        return false
+        switch coachState {
+        case .preparing, .running: return true
+        default: return false
+        }
     }
 
     private var coachSection: some View {
@@ -238,6 +241,15 @@ struct BragDocView: View {
             switch coachState {
             case .idle:
                 EmptyView()
+            case .preparing(let fraction):
+                Card {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HUDBar(value: fraction, accent: Theme.cyan)
+                        Text("Loading model\u{2026} \(Int(fraction * 100))%  \u{2014} first run downloads it once.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textDim)
+                    }
+                }
             case .running:
                 Card {
                     HStack(spacing: 8) {
@@ -282,12 +294,12 @@ struct BragDocView: View {
     private func coachMe() {
         let situation = coachInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !situation.isEmpty else { return }
-        coachState = .running
+        coachState = .preparing(0)
         Task {
             for await event in app.engine.coach(situation: situation) {
                 switch event {
-                case .modelLoading:
-                    break
+                case .modelLoading(let fraction):
+                    coachState = fraction < 0.999 ? .preparing(fraction) : .running
                 case .finished(let output):
                     coachState = .done(output)
                 case .failed(let message):

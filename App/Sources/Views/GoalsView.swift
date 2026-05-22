@@ -10,6 +10,7 @@ struct GoalsView: View {
     @State private var baseline = ""
     @State private var planningGoalId: UUID?
     @State private var planError: String?
+    @State private var planProgress: Double = 0
 
     var body: some View {
         ScrollView {
@@ -107,11 +108,20 @@ struct GoalsView: View {
                 }
 
                 if planningGoalId == goal.id {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
-                        Text("Breaking it down\u{2026}")
-                            .font(.callout)
-                            .foregroundStyle(Theme.textDim)
+                    if planProgress > 0 && planProgress < 1 {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HUDBar(value: planProgress, accent: Theme.cyan)
+                            Text("Loading model\u{2026} \(Int(planProgress * 100))%  \u{2014} first run downloads it once.")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textDim)
+                        }
+                    } else {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text("Breaking it down\u{2026}")
+                                .font(.callout)
+                                .foregroundStyle(Theme.textDim)
+                        }
                     }
                 } else if milestones.isEmpty && tasks.isEmpty {
                     Button {
@@ -198,14 +208,15 @@ struct GoalsView: View {
 
     private func breakDown(_ goal: Goal) {
         planError = nil
+        planProgress = 0
         planningGoalId = goal.id
         Task {
             for await event in app.engine.plan(goal: goal.title,
                                                timeline: goal.timeline,
                                                baseline: goal.baseline) {
                 switch event {
-                case .modelLoading:
-                    break
+                case .modelLoading(let fraction):
+                    planProgress = fraction
                 case .finished(let output):
                     app.applyGoalPlan(output, to: goal)
                 case .failed(let message):
@@ -213,6 +224,7 @@ struct GoalsView: View {
                 }
             }
             planningGoalId = nil
+            planProgress = 0
         }
     }
 

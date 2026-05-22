@@ -23,6 +23,13 @@ enum CoachEvent: Sendable {
     case failed(String)
 }
 
+/// Events from an explicit model download / load.
+enum ModelPrepareEvent: Sendable {
+    case progress(Double)
+    case ready
+    case failed(String)
+}
+
 /// Orchestrates a decision session.
 ///
 /// V0 implements a simplified loop: build prompt → stream completion → extract
@@ -97,6 +104,27 @@ final class ReasoningEngine: Sendable {
                                                           onToken: { _ in })
                     let output = try JSONExtractor.decode(CoachOutput.self, from: raw)
                     continuation.yield(.finished(output))
+                } catch is CancellationError {
+                    // silent — cancelled
+                } catch {
+                    continuation.yield(.failed(error.localizedDescription))
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Download and load the model, streaming progress. Used by Settings so
+    /// the one-time download is explicit and visible.
+    func prepareModel() -> AsyncStream<ModelPrepareEvent> {
+        AsyncStream { continuation in
+            let task = Task {
+                do {
+                    try await provider.prepare { fraction in
+                        continuation.yield(.progress(fraction))
+                    }
+                    continuation.yield(.ready)
                 } catch is CancellationError {
                     // silent — cancelled
                 } catch {

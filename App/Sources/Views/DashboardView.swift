@@ -12,6 +12,10 @@ struct DashboardView: View {
                 ScreenTitle(greeting,
                             subtitle: Date.now.formatted(date: .complete, time: .omitted))
 
+                if !app.modelDownloaded {
+                    modelBanner
+                }
+
                 briefCard
 
                 HStack(alignment: .top, spacing: 16) {
@@ -64,6 +68,26 @@ struct DashboardView: View {
             productiveRatioPercent: ratio,
             pendingOutcomes: pending,
             todayBlockCount: app.timeBlocks.count))
+    }
+
+    private var modelBanner: some View {
+        Card(accent: Theme.gold) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Theme.gold)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("AI model not downloaded")
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("Decisions, goal breakdown, and coaching need the local model. Download it once in Settings — nothing reasons until then.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textDim)
+                    Button("Open Settings") { app.section = .settings }
+                        .buttonStyle(.link)
+                }
+                Spacer()
+            }
+        }
     }
 
     private var briefCard: some View {

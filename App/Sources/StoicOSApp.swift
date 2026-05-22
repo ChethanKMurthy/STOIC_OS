@@ -22,9 +22,10 @@ struct StoicOSApp: App {
 
 /// Build-wide configuration constants.
 enum AppConfig {
-    /// Default MLX model — a strong 14B reasoning model (~8 GB at 4-bit),
-    /// comfortable on Apple Silicon with 24 GB. Changeable in Settings.
-    static let defaultModelID = "mlx-community/Qwen3-14B-4bit"
+    /// Default MLX model — Qwen3-8B at 4-bit (~4.5 GB): a strong reasoning
+    /// model with a practical first-run download. Changeable in Settings,
+    /// where a faster 4B and a stronger 14B are also offered.
+    static let defaultModelID = "mlx-community/Qwen3-8B-4bit"
     static let appName = "STOIC OS"
     static let version = "0.1.0 (V0)"
 }

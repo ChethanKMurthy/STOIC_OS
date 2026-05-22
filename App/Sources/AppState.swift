@@ -78,6 +78,9 @@ final class AppState {
     var decisions: [DecisionRecord]
 
     var modelID: String
+    var modelDownloading = false
+    var modelProgress: Double = 0
+    var modelError: String?
 
     let store: FileStore
     private(set) var engine: ReasoningEngine
@@ -131,6 +134,42 @@ final class AppState {
         modelID = id
         store.setString("modelID", id)
         engine = ReasoningEngine(provider: LocalLLMProvider(modelID: id))
+        modelProgress = 0
+        modelError = nil
+    }
+
+    /// True if the active model has already been downloaded to the Hugging
+    /// Face cache (`~/Documents/huggingface/models/<id>`).
+    var modelDownloaded: Bool {
+        guard let base = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask).first else { return false }
+        let directory = base.appendingPathComponent("huggingface/models/\(modelID)")
+        guard let contents = try? FileManager.default
+            .contentsOfDirectory(atPath: directory.path) else { return false }
+        // A finished download has the weight files, not just config.
+        return contents.contains { $0.hasSuffix(".safetensors") }
+    }
+
+    /// Download (and load) the active model, with visible progress.
+    func downloadModel() {
+        guard !modelDownloading else { return }
+        modelDownloading = true
+        modelProgress = 0
+        modelError = nil
+        Task {
+            for await event in engine.prepareModel() {
+                switch event {
+                case .progress(let fraction):
+                    modelProgress = fraction
+                case .ready:
+                    modelProgress = 1
+                    modelDownloading = false
+                case .failed(let message):
+                    modelError = message
+                    modelDownloading = false
+                }
+            }
+        }
     }
 
     // MARK: - Decisions
