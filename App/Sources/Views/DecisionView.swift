@@ -209,6 +209,7 @@ struct DecisionView: View {
                         .font(.headline)
                         .foregroundStyle(Theme.textPrimary)
                 }
+                ScanLineStrip()
                 if !vm.streamingText.isEmpty {
                     Text(vm.streamingText)
                         .font(.system(.caption, design: .monospaced))

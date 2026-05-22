@@ -60,3 +60,25 @@ struct HUDDivider: View {
             .frame(height: 1)
     }
 }
+
+/// A horizontal scanning sweep — used while the system is processing.
+struct ScanLineStrip: View {
+    @State private var sweep = false
+
+    var body: some View {
+        GeometryReader { geo in
+            Rectangle()
+                .fill(LinearGradient(colors: [.clear, Theme.cyan, .clear],
+                                     startPoint: .leading, endPoint: .trailing))
+                .frame(width: geo.size.width * 0.42)
+                .offset(x: sweep ? geo.size.width * 0.58 : -geo.size.width * 0.42)
+                .onAppear {
+                    withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
+                        sweep = true
+                    }
+                }
+        }
+        .frame(height: 2)
+        .clipped()
+    }
+}

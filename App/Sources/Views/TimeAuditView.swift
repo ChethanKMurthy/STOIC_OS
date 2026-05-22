@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 import StoicKit
 
 /// Time audit screen.
@@ -46,6 +47,7 @@ struct TimeAuditView: View {
 
                 if !app.checkins.isEmpty {
                     auditCard
+                    trendCard
                     ratioCard
                     loggedCard
                 }
@@ -78,6 +80,29 @@ struct TimeAuditView: View {
                             .foregroundStyle(Theme.textPrimary)
                     }
                 }
+            }
+        }
+    }
+
+    private var trendCard: some View {
+        let calendar = Calendar.current
+        let days: [(date: Date, productive: Int)] = (0..<7).reversed().map { offset in
+            let day = calendar.date(byAdding: .day, value: -offset, to: Date()) ?? Date()
+            let count = app.checkins.filter {
+                calendar.isDate($0.hourStart, inSameDayAs: day) && $0.quality == .productive
+            }.count
+            return (day, count)
+        }
+        return Card(accent: Theme.closer) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Productive hours — last 7 days", tint: Theme.closer)
+                Chart(days, id: \.date) { entry in
+                    BarMark(x: .value("Day", entry.date, unit: .day),
+                            y: .value("Productive", entry.productive))
+                        .foregroundStyle(Theme.closer)
+                        .cornerRadius(3)
+                }
+                .frame(height: 120)
             }
         }
     }

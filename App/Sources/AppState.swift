@@ -213,14 +213,15 @@ final class AppState {
         }
     }
 
-    /// Auto-fill the day with pending micro-tasks from goals. Regenerates the
+    /// Auto-fill the day with pending micro-tasks from goals. The number of
+    /// tasks scheduled scales down when WHOOP recovery is low. Regenerates the
     /// goal-sourced blocks; manually added blocks are left untouched.
     func planDay() {
         timeBlocks.removeAll { $0.sourceTaskId != nil }
         let occupied = Set(timeBlocks.map { $0.startHour })
         let pending = microTasks.filter { $0.status == .pending }
         var hour = 9
-        for task in pending.prefix(8) {
+        for task in pending.prefix(plannedTaskCap) {
             while hour < 22 && occupied.contains(hour) { hour += 1 }
             guard hour < 22 else { break }
             timeBlocks.append(TimeBlock(title: task.title,
@@ -229,6 +230,18 @@ final class AppState {
             hour += 1
         }
         store.save(timeBlocks, "timeblocks")
+    }
+
+    /// How many goal tasks to schedule today — fewer when recovery is low.
+    private var plannedTaskCap: Int {
+        if case .connected = whoop.state, let recovery = whoop.vitals.recoveryPercent {
+            switch recovery {
+            case 0..<34:  return 3
+            case 34..<67: return 6
+            default:      return 9
+            }
+        }
+        return 8
     }
 
     // MARK: - Brag document

@@ -3,19 +3,29 @@ import SwiftUI
 /// Top-level routing: app lock → onboarding → main app.
 struct RootView: View {
     @Environment(AppState.self) private var app
+    @State private var booted = false
 
     var body: some View {
-        Group {
-            if app.appLockEnabled && !app.isUnlocked {
-                AppLockView()
-            } else if !app.hasCompletedOnboarding {
-                OnboardingView()
-            } else {
-                MainSplitView()
+        ZStack {
+            Group {
+                if app.appLockEnabled && !app.isUnlocked {
+                    AppLockView()
+                } else if !app.hasCompletedOnboarding {
+                    OnboardingView()
+                } else {
+                    MainSplitView()
+                }
+            }
+            .animation(.default, value: app.isUnlocked)
+            .animation(.default, value: app.hasCompletedOnboarding)
+
+            if !booted {
+                BootView {
+                    withAnimation(.easeOut(duration: 0.4)) { booted = true }
+                }
+                .transition(.opacity)
             }
         }
-        .animation(.default, value: app.isUnlocked)
-        .animation(.default, value: app.hasCompletedOnboarding)
         .task { NotificationManager.requestAndSchedule() }
     }
 }
