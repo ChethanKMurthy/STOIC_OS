@@ -4,6 +4,7 @@ import StoicKit
 /// Dashboard screen.
 struct DashboardView: View {
     @Environment(AppState.self) private var app
+    @State private var showReport = false
 
     var body: some View {
         ScrollView {
@@ -19,14 +20,25 @@ struct DashboardView: View {
                 }
                 auditCard
 
-                Button {
-                    app.section = .decisions
-                } label: {
-                    Label("New decision", systemImage: "brain.head.profile")
+                HStack {
+                    Button {
+                        app.section = .decisions
+                    } label: {
+                        Label("New decision", systemImage: "brain.head.profile")
+                    }
+                    .buttonStyle(GradientButtonStyle())
+                    Button {
+                        showReport = true
+                    } label: {
+                        Label("Weekly report", systemImage: "doc.text")
+                    }
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(GradientButtonStyle())
             }
             .padding(24)
+        }
+        .sheet(isPresented: $showReport) {
+            WeeklyReportView().environment(app)
         }
     }
 
