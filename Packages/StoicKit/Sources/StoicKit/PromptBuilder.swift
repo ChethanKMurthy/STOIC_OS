@@ -100,4 +100,25 @@ public enum PromptBuilder {
         Output only the JSON object.
         """
     }
+
+    /// Guardrail screening prompt. Produces a ``GuardrailScreen`` as JSON.
+    public static func guardrailScreenPrompt(recommendation: String,
+                                             diplomaticApproach: String) -> String {
+        """
+        You are an ethics screen. Judge ONLY whether the advice below counsels
+        the user to do any of these things TO OTHER PEOPLE: manipulation, lying
+        or image inflation, withholding information to control people, treating
+        people purely as instruments, or excessive admiration-seeking.
+
+        RECOMMENDATION: \(recommendation)
+        APPROACH: \(diplomaticApproach)
+
+        Respond with ONE JSON object and nothing else:
+        { "violation": true or false, "reason": "if true, name the specific problem; if false, empty" }
+
+        Being blunt, self-interested, or strategic is NOT a violation. Only
+        dishonest or manipulative treatment of other people is. Output only the
+        JSON object.
+        """
+    }
 }

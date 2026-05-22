@@ -102,6 +102,25 @@ public struct ConstitutionImpact: Codable, Sendable, Equatable {
     }
 }
 
+/// The verdict of the guardrail screening pass.
+public struct GuardrailScreen: Codable, Sendable {
+    public var violation: Bool
+    public var reason: String
+
+    private enum CodingKeys: String, CodingKey { case violation, reason }
+
+    public init(violation: Bool, reason: String) {
+        self.violation = violation
+        self.reason = reason
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.violation = (try? c.decode(Bool.self, forKey: .violation)) ?? false
+        self.reason = (try? c.decode(String.self, forKey: .reason)) ?? ""
+    }
+}
+
 public enum SessionError: Error, Sendable, LocalizedError {
     case emptyModelOutput
     case malformedJSON(String)

@@ -48,7 +48,21 @@ final class ReasoningEngine: Sendable {
                         continuation.yield(.token(delta))
                     }
 
-                    let output = try JSONExtractor.decode(DecisionOutput.self, from: raw)
+                    var output = try JSONExtractor.decode(DecisionOutput.self, from: raw)
+
+                    // Guardrail screening pass — regenerate once on a violation.
+                    if let violation = await self.screen(output) {
+                        let corrected = user
+                            + "\n\nA prior attempt was rejected by the ethics screen because: "
+                            + violation
+                            + ". Produce a recommendation that does not do this."
+                        if let retryRaw = try? await provider.complete(system: system,
+                                                                       user: corrected,
+                                                                       onToken: { _ in }),
+                           let retry = try? JSONExtractor.decode(DecisionOutput.self, from: retryRaw) {
+                            output = retry
+                        }
+                    }
                     continuation.yield(.finished(output))
                 } catch is CancellationError {
                     // silent — the UI cancelled
@@ -59,6 +73,20 @@ final class ReasoningEngine: Sendable {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    /// The guardrail screening pass — returns the violation reason, or nil.
+    private func screen(_ output: DecisionOutput) async -> String? {
+        let prompt = PromptBuilder.guardrailScreenPrompt(
+            recommendation: output.recommendation.choice,
+            diplomaticApproach: output.diplomaticApproach)
+        guard let raw = try? await provider.complete(system: PromptBuilder.systemPreamble(),
+                                                     user: prompt,
+                                                     onToken: { _ in }),
+              let verdict = try? JSONExtractor.decode(GuardrailScreen.self, from: raw) else {
+            return nil
+        }
+        return verdict.violation ? verdict.reason : nil
     }
 
     /// Decompose a goal into milestones, micro-tasks, and reading suggestions.
