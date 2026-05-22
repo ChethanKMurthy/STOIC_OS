@@ -89,6 +89,7 @@ struct BragDocView: View {
                                 Spacer()
                                 Button { app.deleteBragEntry(entry) } label: {
                                     Image(systemName: "trash")
+                                        .accessibilityLabel("Delete")
                                 }
                                 .buttonStyle(.plain).foregroundStyle(Theme.danger)
                             }
@@ -177,6 +178,7 @@ struct BragDocView: View {
                             Button { app.deleteContact(contact) } label: {
                                 Image(systemName: "trash")
                             }
+                            .accessibilityLabel("Delete contact")
                             .buttonStyle(.plain).foregroundStyle(Theme.danger)
                         }
                     }

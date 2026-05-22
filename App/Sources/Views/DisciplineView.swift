@@ -159,6 +159,7 @@ struct DisciplineView: View {
                             Image(systemName: "trash")
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("Delete commitment")
                         .foregroundStyle(Theme.textDim)
                     }
                 }

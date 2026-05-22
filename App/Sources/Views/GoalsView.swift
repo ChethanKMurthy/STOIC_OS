@@ -94,6 +94,7 @@ struct GoalsView: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(Theme.danger)
                     .help("Delete goal")
+                    .accessibilityLabel("Delete goal")
                 }
                 HStack {
                     HUDBar(value: progress, accent: Theme.closer)

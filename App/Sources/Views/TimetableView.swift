@@ -117,18 +117,22 @@ struct TimetableView: View {
                 Image(systemName: "chevron.up")
             }
             .buttonStyle(.plain).foregroundStyle(Theme.textDim)
+            .accessibilityLabel("Move earlier")
             Button { move(block, by: 1) } label: {
                 Image(systemName: "chevron.down")
             }
             .buttonStyle(.plain).foregroundStyle(Theme.textDim)
+            .accessibilityLabel("Move later")
             Button { toggleDone(block) } label: {
                 Image(systemName: block.done ? "checkmark.circle.fill" : "circle")
             }
             .buttonStyle(.plain).foregroundStyle(block.done ? Theme.ok : Theme.textDim)
+            .accessibilityLabel(block.done ? "Mark not done" : "Mark done")
             Button { app.deleteTimeBlock(block) } label: {
                 Image(systemName: "trash")
             }
             .buttonStyle(.plain).foregroundStyle(Theme.danger)
+            .accessibilityLabel("Delete block")
         }
     }
 

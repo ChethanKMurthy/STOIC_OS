@@ -21,6 +21,7 @@ struct RingGauge: View {
         .onAppear {
             withAnimation(.easeOut(duration: 0.9)) { shown = true }
         }
+        .accessibilityHidden(true)
     }
 }
 
@@ -47,6 +48,7 @@ struct HUDBar: View {
         .onAppear {
             withAnimation(.easeOut(duration: 0.7)) { shown = true }
         }
+        .accessibilityHidden(true)
     }
 
     private var clamped: Double { max(0, min(value, 1)) }
