@@ -55,6 +55,16 @@ public enum ConstitutionScoring {
         100 - integrityScore(traits: traits)
     }
 
+    /// Apply a behavioural nudge to every trait's current level — a decision
+    /// verdict or a logged hour moving the Constitution. Clamped to 0 ... 100.
+    public static func nudged(_ traits: [ConstitutionTrait], by delta: Int) -> [ConstitutionTrait] {
+        traits.map { trait in
+            var updated = trait
+            updated.currentLevel = max(0, min(100, updated.currentLevel + delta))
+            return updated
+        }
+    }
+
     /// Weighted score of a single action, in `-1.0 ... 1.0`.
     ///
     /// - Parameters:

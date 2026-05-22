@@ -23,7 +23,8 @@ final class ReasoningEngine: Sendable {
     }
 
     /// Run a decision session, streaming progress and the final result.
-    func decide(situation: String, isPast: Bool) -> AsyncStream<ReasoningEvent> {
+    /// `context` carries extra grounding (e.g. the user's current physiology).
+    func decide(situation: String, isPast: Bool, context: [String] = []) -> AsyncStream<ReasoningEvent> {
         AsyncStream { continuation in
             let task = Task {
                 do {
@@ -33,7 +34,8 @@ final class ReasoningEngine: Sendable {
 
                     let system = PromptBuilder.systemPreamble()
                     let user = PromptBuilder.decisionPrompt(situation: situation,
-                                                            isPast: isPast)
+                                                            isPast: isPast,
+                                                            retrievedContext: context)
 
                     let raw = try await provider.complete(system: system, user: user) { delta in
                         continuation.yield(.token(delta))

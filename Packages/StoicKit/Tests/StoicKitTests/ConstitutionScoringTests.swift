@@ -81,4 +81,11 @@ final class ConstitutionScoringTests: XCTestCase {
         ]
         XCTAssertGreaterThan(ConstitutionScoring.integrityScore(traits: traits), 80)
     }
+
+    func testNudgeMovesAndClamps() {
+        let traits = [ConstitutionTrait(name: "A", weight: 1, currentLevel: 98, targetLevel: 100)]
+        XCTAssertEqual(ConstitutionScoring.nudged(traits, by: 5).first?.currentLevel, 100)
+        XCTAssertEqual(ConstitutionScoring.nudged(traits, by: -200).first?.currentLevel, 0)
+        XCTAssertEqual(ConstitutionScoring.nudged(traits, by: -8).first?.currentLevel, 90)
+    }
 }

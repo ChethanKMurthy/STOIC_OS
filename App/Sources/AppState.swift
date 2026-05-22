@@ -119,6 +119,12 @@ final class AppState {
         store.save(decisions, "decisions")
     }
 
+    func recordDecisionOutcome(_ decision: DecisionRecord, outcome: String) {
+        guard let index = decisions.firstIndex(where: { $0.id == decision.id }) else { return }
+        decisions[index].outcome = outcome
+        store.save(decisions, "decisions")
+    }
+
     // MARK: - Goals
 
     func addGoal(_ goal: Goal) {
@@ -167,6 +173,7 @@ final class AppState {
     func addCheckin(_ checkin: HourlyCheckin) {
         checkins.insert(checkin, at: 0)
         store.save(checkins, "checkins")
+        applyConstitutionNudge(checkin.quality == .productive ? 1 : -2)
     }
 
     // MARK: - Constitution
@@ -174,6 +181,22 @@ final class AppState {
     func saveConstitution(_ model: ConstitutionModel) {
         constitution = model
         store.save(model, "constitution")
+    }
+
+    /// A decision verdict moves the Constitution toward or away from the ideal.
+    func applyConstitutionImpact(direction: String) {
+        switch direction.lowercased() {
+        case "closer":  applyConstitutionNudge(2)
+        case "further": applyConstitutionNudge(-3)
+        default:        break
+        }
+    }
+
+    private func applyConstitutionNudge(_ delta: Int) {
+        guard delta != 0, !constitution.traits.isEmpty else { return }
+        var updated = constitution
+        updated.traits = ConstitutionScoring.nudged(updated.traits, by: delta)
+        saveConstitution(updated)
     }
 
     // MARK: - Seed data (first launch)
