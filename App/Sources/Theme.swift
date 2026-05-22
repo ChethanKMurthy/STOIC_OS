@@ -1,49 +1,87 @@
 import SwiftUI
 
-/// Visual theme — a dark, colourful look with real depth.
+/// HUD command-center visual system — obsidian surfaces, cyan holographics,
+/// gold reserved for command-level state. The whole app inherits this through
+/// the shared components below.
 enum Theme {
-    static let corner: CGFloat = 18
+    static let corner: CGFloat = 14
 
     // MARK: - Palette
-    static let accent  = Color(red: 0.56, green: 0.47, blue: 1.00)   // violet
-    static let accent2 = Color(red: 0.36, green: 0.71, blue: 1.00)   // blue
-    static let closer  = Color(red: 0.32, green: 0.86, blue: 0.55)   // green
-    static let neutral = Color(red: 0.62, green: 0.64, blue: 0.72)
-    static let further = Color(red: 1.00, green: 0.56, blue: 0.32)   // orange
-    static let gold    = Color(red: 1.00, green: 0.80, blue: 0.32)
-    static let pink    = Color(red: 1.00, green: 0.45, blue: 0.70)
+    static let obsidian    = Color(red: 0.02, green: 0.03, blue: 0.05)
+    static let panelFill   = Color(red: 0.06, green: 0.10, blue: 0.13)
+    static let cyan        = Color(red: 0.38, green: 0.86, blue: 1.00)
+    static let cyanDim     = Color(red: 0.22, green: 0.48, blue: 0.58)
+    static let gold        = Color(red: 1.00, green: 0.78, blue: 0.34)
+    static let danger      = Color(red: 1.00, green: 0.38, blue: 0.42)
+    static let ok          = Color(red: 0.40, green: 0.95, blue: 0.62)
+    static let textPrimary = Color(red: 0.87, green: 0.95, blue: 0.99)
+    static let textDim     = Color(red: 0.49, green: 0.62, blue: 0.70)
+
+    // Back-compatible aliases used across the app.
+    static let accent  = cyan
+    static let accent2 = Color(red: 0.55, green: 0.66, blue: 1.00)
+    static let closer  = ok
+    static let neutral = textDim
+    static let further = gold
+    static let pink    = Color(red: 1.00, green: 0.46, blue: 0.72)
 
     // MARK: - Gradients
     static let appBackground = LinearGradient(
         colors: [
-            Color(red: 0.05, green: 0.05, blue: 0.11),
-            Color(red: 0.09, green: 0.07, blue: 0.17),
-            Color(red: 0.04, green: 0.08, blue: 0.15)
+            Color(red: 0.02, green: 0.03, blue: 0.05),
+            Color(red: 0.04, green: 0.06, blue: 0.10),
+            Color(red: 0.02, green: 0.03, blue: 0.06)
         ],
-        startPoint: .topLeading, endPoint: .bottomTrailing)
+        startPoint: .top, endPoint: .bottom)
 
     static let accentGradient = LinearGradient(
-        colors: [accent, accent2],
+        colors: [cyan, accent2],
         startPoint: .topLeading, endPoint: .bottomTrailing)
-
-    static func tintedSurface(_ tint: Color) -> LinearGradient {
-        LinearGradient(
-            colors: [tint.opacity(0.20), Color.white.opacity(0.02)],
-            startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
-    static let edgeHighlight = LinearGradient(
-        colors: [Color.white.opacity(0.35), Color.white.opacity(0.04)],
-        startPoint: .top, endPoint: .bottom)
 }
 
-/// A raised, glassy content card with depth, a coloured glow, and a hover lift.
+/// L-shaped corner brackets — the signature HUD frame.
+struct CornerBrackets: Shape {
+    var inset: CGFloat = 5
+    var length: CGFloat = 16
+
+    var animatableData: CGFloat {
+        get { length }
+        set { length = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let r = rect.insetBy(dx: inset, dy: inset)
+        let l = min(length, min(r.width, r.height) / 2)
+
+        path.move(to: CGPoint(x: r.minX, y: r.minY + l))
+        path.addLine(to: CGPoint(x: r.minX, y: r.minY))
+        path.addLine(to: CGPoint(x: r.minX + l, y: r.minY))
+
+        path.move(to: CGPoint(x: r.maxX - l, y: r.minY))
+        path.addLine(to: CGPoint(x: r.maxX, y: r.minY))
+        path.addLine(to: CGPoint(x: r.maxX, y: r.minY + l))
+
+        path.move(to: CGPoint(x: r.maxX, y: r.maxY - l))
+        path.addLine(to: CGPoint(x: r.maxX, y: r.maxY))
+        path.addLine(to: CGPoint(x: r.maxX - l, y: r.maxY))
+
+        path.move(to: CGPoint(x: r.minX + l, y: r.maxY))
+        path.addLine(to: CGPoint(x: r.minX, y: r.maxY))
+        path.addLine(to: CGPoint(x: r.minX, y: r.maxY - l))
+
+        return path
+    }
+}
+
+/// A holographic HUD panel: translucent obsidian fill, a thin glowing border,
+/// corner brackets that extend on hover, and a coloured glow.
 struct Card<Content: View>: View {
     private let accent: Color
     private let content: Content
     @State private var hovering = false
 
-    init(accent: Color = Theme.accent, @ViewBuilder content: () -> Content) {
+    init(accent: Color = Theme.cyan, @ViewBuilder content: () -> Content) {
         self.accent = accent
         self.content = content()
     }
@@ -53,28 +91,29 @@ struct Card<Content: View>: View {
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
-                        .fill(Theme.tintedSurface(accent))
-                }
+                RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
+                    .fill(Theme.panelFill.opacity(0.55))
+                    .background(
+                        RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.corner, style: .continuous)
-                    .strokeBorder(Theme.edgeHighlight, lineWidth: 1)
+                    .strokeBorder(accent.opacity(hovering ? 0.5 : 0.22), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.55),
-                    radius: hovering ? 26 : 16, x: 0, y: hovering ? 16 : 10)
-            .shadow(color: accent.opacity(hovering ? 0.40 : 0.15),
-                    radius: hovering ? 30 : 16, x: 0, y: 0)
-            .scaleEffect(hovering ? 1.012 : 1.0)
-            .animation(.spring(response: 0.32, dampingFraction: 0.72), value: hovering)
+            .overlay(
+                CornerBrackets(inset: 5, length: hovering ? 24 : 16)
+                    .stroke(accent.opacity(hovering ? 1.0 : 0.7), lineWidth: 1.5)
+            )
+            .shadow(color: accent.opacity(hovering ? 0.38 : 0.14),
+                    radius: hovering ? 20 : 11)
+            .animation(.easeOut(duration: 0.25), value: hovering)
             .onHover { hovering = $0 }
     }
 }
 
-/// Large screen heading with gradient text.
+/// Large screen heading — uppercased, tracked, with a glow and a command marker.
 struct ScreenTitle: View {
     let text: String
     var subtitle: String?
@@ -85,15 +124,22 @@ struct ScreenTitle: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(text)
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.accentGradient)
-                .shadow(color: Theme.accent.opacity(0.35), radius: 12, x: 0, y: 4)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 11) {
+                Rectangle()
+                    .fill(Theme.cyan)
+                    .frame(width: 3, height: 26)
+                    .shadow(color: Theme.cyan, radius: 6)
+                Text(text.uppercased())
+                    .font(.system(size: 25, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
+                    .tracking(2)
+                    .shadow(color: Theme.cyan.opacity(0.55), radius: 9)
+            }
             if let subtitle {
                 Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.system(.subheadline, design: .monospaced))
+                    .foregroundStyle(Theme.textDim)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -101,41 +147,51 @@ struct ScreenTitle: View {
     }
 }
 
-/// A small, uppercase, accent-coloured section label.
+/// A small monospaced section label with a command marker.
 struct SectionLabel: View {
     let text: String
-    var tint: Color = Theme.accent
+    var tint: Color = Theme.cyan
 
-    init(_ text: String, tint: Color = Theme.accent) {
+    init(_ text: String, tint: Color = Theme.cyan) {
         self.text = text
         self.tint = tint
     }
 
     var body: some View {
-        Text(text.uppercased())
-            .font(.caption.weight(.bold))
-            .tracking(1.3)
-            .foregroundStyle(tint)
-            .accessibilityAddTraits(.isHeader)
+        HStack(spacing: 6) {
+            Text("\u{25B8}")
+                .font(.system(size: 9))
+                .foregroundStyle(tint)
+            Text(text.uppercased())
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .tracking(1.7)
+                .foregroundStyle(tint)
+        }
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
-/// A raised, gradient-filled primary button with a press animation.
+/// A holographic primary button — thin glowing frame that fills when pressed.
 struct GradientButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.callout.weight(.semibold))
-            .padding(.horizontal, 20)
+            .font(.system(.callout, design: .rounded).weight(.semibold))
+            .tracking(1)
+            .padding(.horizontal, 22)
             .padding(.vertical, 11)
-            .background(Theme.accentGradient,
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .foregroundStyle(.white)
-            .shadow(color: Theme.accent.opacity(configuration.isPressed ? 0.30 : 0.55),
-                    radius: configuration.isPressed ? 5 : 14,
-                    x: 0, y: configuration.isPressed ? 2 : 7)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6),
-                       value: configuration.isPressed)
+            .foregroundStyle(configuration.isPressed ? Theme.obsidian : Theme.cyan)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(configuration.isPressed ? Theme.cyan : Theme.cyan.opacity(0.10))
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .strokeBorder(Theme.cyan, lineWidth: 1)
+                }
+            )
+            .shadow(color: Theme.cyan.opacity(configuration.isPressed ? 0.25 : 0.5),
+                    radius: configuration.isPressed ? 4 : 12)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 
@@ -144,14 +200,14 @@ struct ComingSoonNote: View {
     let module: String
 
     var body: some View {
-        Card(accent: Theme.further) {
+        Card(accent: Theme.gold) {
             VStack(alignment: .leading, spacing: 6) {
-                Label("In progress", systemImage: "hammer.fill")
-                    .font(.headline)
-                    .foregroundStyle(Theme.further)
-                Text("\(module) — the layout is here; the deeper logic is still being built.")
+                Label("SUBSYSTEM PENDING", systemImage: "circle.dotted")
+                    .font(.system(.caption, design: .monospaced).weight(.bold))
+                    .foregroundStyle(Theme.gold)
+                Text("\(module) — interface online, deeper logic still being built.")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.textDim)
             }
         }
     }
