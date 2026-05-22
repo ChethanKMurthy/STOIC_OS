@@ -35,6 +35,7 @@ struct DisciplineView: View {
                 }
 
                 shieldSection
+                trainingCard
                 if showingAdd { addForm }
                 stakeNote
 
@@ -78,6 +79,22 @@ struct DisciplineView: View {
                     }
                     .buttonStyle(GradientButtonStyle())
                 }
+            }
+        }
+    }
+
+    private var trainingCard: some View {
+        let gym = Color(red: 1.0, green: 0.55, blue: 0.3)
+        return Card(accent: gym) {
+            HStack(spacing: 10) {
+                Image(systemName: "flame.fill").foregroundStyle(gym)
+                Text("Training streak: \(app.workoutStreak) day\(app.workoutStreak == 1 ? "" : "s")")
+                    .font(.callout)
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+                Text("physical discipline")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(Theme.textDim)
             }
         }
     }

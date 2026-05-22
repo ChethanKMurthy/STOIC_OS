@@ -81,6 +81,7 @@ final class AppState {
     var decisions: [DecisionRecord]
     var workouts: [WorkoutSession]
     var bodyWeights: [BodyWeightEntry]
+    var calorieIntake: [CalorieIntakeEntry]
     var targetBodyWeightKg: Double
 
     var modelID: String
@@ -113,6 +114,7 @@ final class AppState {
         self.decisions = store.load([DecisionRecord].self, "decisions") ?? []
         self.workouts = store.load([WorkoutSession].self, "workouts") ?? []
         self.bodyWeights = store.load([BodyWeightEntry].self, "bodyweights") ?? []
+        self.calorieIntake = store.load([CalorieIntakeEntry].self, "calorieIntake") ?? []
         self.targetBodyWeightKg = store.load(Double.self, "targetWeight") ?? 0
         self.engine = ReasoningEngine(provider: LocalLLMProvider(modelID: modelID))
         self.whoop = WhoopService(store: store)
@@ -409,6 +411,25 @@ final class AppState {
     func setTargetBodyWeight(_ weightKg: Double) {
         targetBodyWeightKg = weightKg
         store.save(weightKg, "targetWeight")
+    }
+
+    func addCalorieIntake(_ calories: Int) {
+        calorieIntake.append(CalorieIntakeEntry(calories: calories))
+        store.save(calorieIntake, "calorieIntake")
+    }
+
+    var todayCalorieIntake: Int {
+        calorieIntake
+            .filter { Calendar.current.isDateInToday($0.date) }
+            .reduce(0) { $0 + $1.calories }
+    }
+
+    var todayTrainingBurn: Int {
+        workouts
+            .filter { Calendar.current.isDateInToday($0.date) }
+            .reduce(0) { $0 + GymMath.estimatedCalories(
+                durationMinutes: $1.durationMinutes,
+                bodyWeightKg: currentBodyWeightKg ?? 75) }
     }
 
     // MARK: - Time audit

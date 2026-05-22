@@ -21,6 +21,7 @@ struct ConstitutionView: View {
 
                 integrityCore
                 trajectoryCard
+                physicalCard
                 narrativeCard
                 traitsCard
             }
@@ -89,6 +90,40 @@ struct ConstitutionView: View {
                     .chartYScale(domain: 0...100)
                     .frame(height: 150)
                 }
+            }
+        }
+    }
+
+    // MARK: - Physical discipline
+
+    private var physicalCard: some View {
+        let gym = Color(red: 1.0, green: 0.55, blue: 0.3)
+        let strength = GymAnalysis.strengthScore(sessions: app.workouts,
+                                                 bodyWeightKg: app.currentBodyWeightKg ?? 0)
+        return Card(accent: gym) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Physical discipline", tint: gym)
+                HStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(strength.map(String.init) ?? "\u{2014}")
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("strength score")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textDim)
+                    }
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("\(app.workoutStreak)")
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("day streak")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textDim)
+                    }
+                }
+                Text("The body is held to the same standard as the mind. Tracked in the Gym module.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textDim)
             }
         }
     }

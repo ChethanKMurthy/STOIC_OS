@@ -78,6 +78,19 @@ public struct WorkoutSession: Identifiable, Codable, Sendable, Equatable {
     }
 }
 
+/// A logged calorie intake.
+public struct CalorieIntakeEntry: Identifiable, Codable, Sendable, Equatable {
+    public var id: UUID
+    public var date: Date
+    public var calories: Int
+
+    public init(id: UUID = UUID(), date: Date = Date(), calories: Int) {
+        self.id = id
+        self.date = date
+        self.calories = calories
+    }
+}
+
 /// A dated body-weight reading.
 public struct BodyWeightEntry: Identifiable, Codable, Sendable, Equatable {
     public var id: UUID

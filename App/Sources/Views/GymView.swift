@@ -13,6 +13,7 @@ struct GymView: View {
     @State private var targetInput = ""
     @State private var editingWeight = false
     @State private var recMuscle: MuscleGroup = .chest
+    @State private var intakeInput = ""
 
     var body: some View {
         ScrollView {
@@ -21,6 +22,12 @@ struct GymView: View {
                     ScreenTitle("Gym",
                                 subtitle: "Hold the body to the same standard as everything else.")
                     Spacer()
+                    Button {
+                        app.addTimeBlock(TimeBlock(title: "Strength training", startHour: 18))
+                    } label: {
+                        Label("Schedule", systemImage: "calendar.badge.plus")
+                    }
+                    .buttonStyle(.bordered)
                     Button { showingLog = true } label: {
                         Label("Log workout", systemImage: "plus")
                     }
@@ -31,7 +38,9 @@ struct GymView: View {
                     streakCard
                     bodyWeightCard
                 }
+                readinessCard
                 strengthCard
+                energyCard
                 trajectoryCard
                 muscleVolumeCard
                 recordsCard
@@ -113,6 +122,86 @@ struct GymView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var readinessCard: some View {
+        Card(accent: gymAccent) {
+            VStack(alignment: .leading, spacing: 6) {
+                SectionLabel("Training readiness", tint: gymAccent)
+                if case .connected = app.whoop.state,
+                   let recovery = app.whoop.vitals.recoveryPercent {
+                    let verdict = readinessVerdict(recovery)
+                    HStack(spacing: 8) {
+                        Circle().fill(verdict.color).frame(width: 11, height: 11)
+                        Text(verdict.headline)
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("recovery \(recovery)%")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(Theme.textDim)
+                    }
+                    Text(verdict.detail)
+                        .font(.caption)
+                        .foregroundStyle(Theme.textDim)
+                } else {
+                    Text("Connect WHOOP in Vitals for a recovery-based training verdict.")
+                        .font(.callout)
+                        .foregroundStyle(Theme.textDim)
+                }
+            }
+        }
+    }
+
+    private func readinessVerdict(_ recovery: Int) -> (color: Color, headline: String, detail: String) {
+        switch recovery {
+        case 67...:
+            return (Theme.ok, "Push \u{2014} add load today",
+                    "Recovery is high. This is a day to chase a PR.")
+        case 34..<67:
+            return (Theme.gold, "Maintain \u{2014} train, don't grind",
+                    "Moderate recovery. Hold your numbers; stop short of failure.")
+        default:
+            return (Theme.danger, "Deload or rest",
+                    "Recovery is low. Training hard today is a withdrawal, not a deposit.")
+        }
+    }
+
+    private var energyCard: some View {
+        let intake = app.todayCalorieIntake
+        let burned = app.todayTrainingBurn
+        let net = intake - burned
+        return Card(accent: gymAccent) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Energy \u{2014} today", tint: gymAccent)
+                HStack(spacing: 18) {
+                    metric("\(intake)", "kcal in")
+                    metric("~\(burned)", "training burn")
+                    metric("\(net >= 0 ? "+" : "")\(net)", "net (excl. BMR)")
+                }
+                HStack(spacing: 6) {
+                    TextField("Log calories eaten", text: $intakeInput)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 150)
+                    Button("Add") {
+                        if let kcal = Int(intakeInput.trimmingCharacters(in: .whitespaces)),
+                           kcal > 0 {
+                            app.addCalorieIntake(kcal)
+                        }
+                        intakeInput = ""
+                    }
+                    .buttonStyle(.bordered)
+                }
+                if app.targetBodyWeightKg > 0, let current = app.currentBodyWeightKg {
+                    Text(current > app.targetBodyWeightKg
+                         ? "Goal is fat loss \u{2014} keep intake under your full daily burn."
+                         : (current < app.targetBodyWeightKg
+                            ? "Goal is gaining \u{2014} intake must clear your full daily burn."
+                            : "You are at your target weight \u{2014} hold the balance."))
+                        .font(.caption)
+                        .foregroundStyle(Theme.textDim)
+                }
+            }
         }
     }
 
