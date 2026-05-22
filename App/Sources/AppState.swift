@@ -4,7 +4,7 @@ import StoicKit
 
 /// The navigable sections of the app.
 enum AppSection: String, CaseIterable, Identifiable {
-    case dashboard, decisions, goals, timetable, timeAudit, bragDoc, constitution, settings
+    case dashboard, decisions, goals, timetable, timeAudit, vitals, bragDoc, constitution, settings
 
     var id: String { rawValue }
 
@@ -15,6 +15,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .goals:        return "Goals"
         case .timetable:    return "Timetable"
         case .timeAudit:    return "Time Audit"
+        case .vitals:       return "Vitals"
         case .bragDoc:      return "Brag Doc"
         case .constitution: return "Constitution"
         case .settings:     return "Settings"
@@ -28,6 +29,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .goals:        return "target"
         case .timetable:    return "calendar.day.timeline.left"
         case .timeAudit:    return "clock.badge.checkmark"
+        case .vitals:       return "waveform.path.ecg"
         case .bragDoc:      return "trophy"
         case .constitution: return "building.columns"
         case .settings:     return "gearshape"
@@ -41,6 +43,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .goals:        return Theme.closer
         case .timetable:    return Theme.further
         case .timeAudit:    return Color(red: 0.30, green: 0.80, blue: 0.80)
+        case .vitals:       return Theme.danger
         case .bragDoc:      return Theme.gold
         case .constitution: return Theme.gold
         case .settings:     return Theme.neutral
@@ -69,6 +72,7 @@ final class AppState {
 
     let store: FileStore
     private(set) var engine: ReasoningEngine
+    let whoop: WhoopService
 
     init() {
         let store = FileStore()
@@ -84,6 +88,7 @@ final class AppState {
         self.checkins = store.load([HourlyCheckin].self, "checkins") ?? []
         self.decisions = store.load([DecisionRecord].self, "decisions") ?? []
         self.engine = ReasoningEngine(provider: LocalLLMProvider(modelID: modelID))
+        self.whoop = WhoopService(store: store)
     }
 
     // MARK: - Lifecycle
