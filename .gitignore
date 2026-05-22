@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# Editor / tooling
+.claude/
+.vscode/
+.idea/
+*.swp
+
+# Xcode / generated project (regenerate with: xcodegen generate)
+*.xcodeproj
+*.xcworkspace
+App/Info.plist
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Local model cache / large binaries
+huggingface/
+models/
+*.safetensors
+*.gguf

@@ -1,0 +1,51 @@
+# XcodeGen project spec. Regenerate the Xcode project with:  xcodegen generate
+name: STOICOS
+options:
+  bundleIdPrefix: com.chethankmurthy
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+packages:
+  StoicKit:
+    path: Packages/StoicKit
+  mlx-swift-examples:
+    url: https://github.com/ml-explore/mlx-swift-examples.git
+    exactVersion: "2.29.1"
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  STOICOS:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: App/Sources
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: STOIC OS
+        CFBundleName: STOIC OS
+        LSMinimumSystemVersion: "14.0"
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHumanReadableCopyright: "STOIC OS — V0"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chethankmurthy.STOICOS
+        PRODUCT_NAME: STOIC OS
+        # App target uses Swift 5 language mode for V0 (lenient concurrency).
+        # StoicKit is full Swift 6. Tighten the app to Swift 6 post-V0.
+        SWIFT_VERSION: "5.0"
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGN_STYLE: Automatic
+        DEAD_CODE_STRIPPING: YES
+    dependencies:
+      - package: StoicKit
+      - package: mlx-swift-examples
+        product: MLXLLM
+      - package: mlx-swift-examples
+        product: MLXLMCommon
