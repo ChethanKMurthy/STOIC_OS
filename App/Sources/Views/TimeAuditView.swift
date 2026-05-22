@@ -45,13 +45,40 @@ struct TimeAuditView: View {
                 }
 
                 if !app.checkins.isEmpty {
+                    auditCard
                     ratioCard
                     loggedCard
                 }
 
-                ComingSoonNote(module: "Hourly notifications, model-proposed grading, and the daily audit")
+                ComingSoonNote(module: "Always-on hourly prompts when the app is fully closed (needs the background helper)")
             }
             .padding(24)
+        }
+    }
+
+    private var auditCard: some View {
+        let today = app.checkins.filter { Calendar.current.isDateInToday($0.hourStart) }
+        let productive = today.filter { $0.quality == .productive }.count
+        let lines = DailyAudit.compose(DailyAuditInput(
+            hoursLogged: today.count,
+            productiveHours: productive,
+            integrityScore: app.constitution.integrityScore,
+            drift: app.constitution.drift))
+        return Card(accent: Theme.gold) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("End-of-day audit", tint: Theme.gold)
+                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("\u{25B8}")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Theme.gold)
+                            .padding(.top, 4)
+                        Text(line)
+                            .font(.callout)
+                            .foregroundStyle(Theme.textPrimary)
+                    }
+                }
+            }
         }
     }
 

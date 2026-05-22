@@ -16,6 +16,7 @@ struct RootView: View {
         }
         .animation(.default, value: app.isUnlocked)
         .animation(.default, value: app.hasCompletedOnboarding)
+        .task { NotificationManager.requestAndSchedule() }
     }
 }
 
