@@ -9,6 +9,13 @@ enum ReasoningEvent: Sendable {
     case failed(String)
 }
 
+/// Events streamed from a goal-decomposition session to the UI.
+enum PlanEvent: Sendable {
+    case modelLoading(Double)
+    case finished(GoalPlanOutput)
+    case failed(String)
+}
+
 /// Orchestrates a decision session.
 ///
 /// V0 implements a simplified loop: build prompt → stream completion → extract
@@ -45,6 +52,32 @@ final class ReasoningEngine: Sendable {
                     continuation.yield(.finished(output))
                 } catch is CancellationError {
                     // silent — the UI cancelled
+                } catch {
+                    continuation.yield(.failed(error.localizedDescription))
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Decompose a goal into milestones, micro-tasks, and reading suggestions.
+    func plan(goal: String, timeline: String, baseline: String) -> AsyncStream<PlanEvent> {
+        AsyncStream { continuation in
+            let task = Task {
+                do {
+                    try await provider.prepare { fraction in
+                        continuation.yield(.modelLoading(fraction))
+                    }
+                    let system = PromptBuilder.systemPreamble()
+                    let user = PromptBuilder.goalPlanPrompt(goal: goal,
+                                                            timeline: timeline,
+                                                            baseline: baseline)
+                    let raw = try await provider.complete(system: system, user: user) { _ in }
+                    let output = try JSONExtractor.decode(GoalPlanOutput.self, from: raw)
+                    continuation.yield(.finished(output))
+                } catch is CancellationError {
+                    // silent — cancelled
                 } catch {
                     continuation.yield(.failed(error.localizedDescription))
                 }

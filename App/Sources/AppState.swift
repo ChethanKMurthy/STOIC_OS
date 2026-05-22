@@ -63,6 +63,8 @@ final class AppState {
 
     var constitution: ConstitutionModel
     var goals: [Goal]
+    var milestones: [Milestone]
+    var microTasks: [MicroTask]
     var timeBlocks: [TimeBlock]
     var bragEntries: [BragEntry]
     var checkins: [HourlyCheckin]
@@ -83,6 +85,8 @@ final class AppState {
         self.appLockEnabled = store.flag("appLockEnabled_set") ? store.flag("appLockEnabled") : true
         self.constitution = store.load(ConstitutionModel.self, "constitution") ?? ConstitutionModel()
         self.goals = store.load([Goal].self, "goals") ?? AppState.seedGoals
+        self.milestones = store.load([Milestone].self, "milestones") ?? []
+        self.microTasks = store.load([MicroTask].self, "microtasks") ?? []
         self.timeBlocks = store.load([TimeBlock].self, "timeblocks") ?? AppState.seedBlocks
         self.bragEntries = store.load([BragEntry].self, "brag") ?? AppState.seedBrag
         self.checkins = store.load([HourlyCheckin].self, "checkins") ?? []
@@ -134,7 +138,49 @@ final class AppState {
 
     func deleteGoal(_ goal: Goal) {
         goals.removeAll { $0.id == goal.id }
+        milestones.removeAll { $0.goalId == goal.id }
+        microTasks.removeAll { $0.goalId == goal.id }
         store.save(goals, "goals")
+        store.save(milestones, "milestones")
+        store.save(microTasks, "microtasks")
+    }
+
+    func milestonesFor(_ goal: Goal) -> [Milestone] {
+        milestones.filter { $0.goalId == goal.id }
+    }
+
+    func tasksFor(_ goal: Goal) -> [MicroTask] {
+        microTasks.filter { $0.goalId == goal.id }
+    }
+
+    /// Replace a goal's plan with a freshly decomposed one.
+    func applyGoalPlan(_ plan: GoalPlanOutput, to goal: Goal) {
+        milestones.removeAll { $0.goalId == goal.id }
+        milestones.append(contentsOf: plan.milestones.map {
+            Milestone(goalId: goal.id, title: $0.title, targetDate: $0.targetDate)
+        })
+        microTasks.removeAll { $0.goalId == goal.id }
+        microTasks.append(contentsOf: plan.microTasks.map {
+            MicroTask(goalId: goal.id, title: $0)
+        })
+        if let index = goals.firstIndex(where: { $0.id == goal.id }) {
+            goals[index].readingSuggestions = plan.readingAndActivities
+        }
+        store.save(milestones, "milestones")
+        store.save(microTasks, "microtasks")
+        store.save(goals, "goals")
+    }
+
+    func toggleMilestone(_ milestone: Milestone) {
+        guard let index = milestones.firstIndex(where: { $0.id == milestone.id }) else { return }
+        milestones[index].done.toggle()
+        store.save(milestones, "milestones")
+    }
+
+    func toggleMicroTask(_ task: MicroTask) {
+        guard let index = microTasks.firstIndex(where: { $0.id == task.id }) else { return }
+        microTasks[index].status = microTasks[index].status == .done ? .pending : .done
+        store.save(microTasks, "microtasks")
     }
 
     // MARK: - Timetable

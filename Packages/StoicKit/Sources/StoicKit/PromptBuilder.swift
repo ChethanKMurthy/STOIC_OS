@@ -72,4 +72,32 @@ public enum PromptBuilder {
         dishonesty, or exploiting another person. Output only the JSON object.
         """
     }
+
+    /// Goal-decomposition task prompt. Produces a ``GoalPlanOutput`` as JSON.
+    public static func goalPlanPrompt(goal: String,
+                                      timeline: String,
+                                      baseline: String) -> String {
+        """
+        Break this long-term goal into a concrete execution plan.
+
+        GOAL: \(goal)
+        TIMELINE: \(timeline.isEmpty ? "unspecified" : timeline)
+        STARTING POINT: \(baseline.isEmpty ? "unspecified" : baseline)
+
+        Respond with ONE JSON object and nothing else — no markdown, no prose
+        outside the JSON. Use exactly these keys:
+
+        {
+          "milestones": [
+            { "title": "a concrete, checkable milestone", "targetDate": "a rough date" }
+          ],
+          "microTasks": ["small, specific, doable actions toward the goal"],
+          "readingAndActivities": ["reading or activities that build the person who reaches this goal"]
+        }
+
+        Give 3-6 milestones, 6-12 micro-tasks, and 3-6 reading/activity
+        suggestions. Each micro-task must be small enough to do in one sitting.
+        Output only the JSON object.
+        """
+    }
 }

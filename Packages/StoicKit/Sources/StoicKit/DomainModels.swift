@@ -68,19 +68,23 @@ public struct Goal: Identifiable, Sendable, Codable {
     /// 0.0 ... 1.0
     public var progress: Double
     public var createdAt: Date
+    /// Reading and activities, set when the goal is decomposed.
+    public var readingSuggestions: [String]?
 
     public init(id: UUID = UUID(),
                 title: String,
                 timeline: String = "",
                 baseline: String = "",
                 progress: Double = 0,
-                createdAt: Date = Date()) {
+                createdAt: Date = Date(),
+                readingSuggestions: [String]? = nil) {
         self.id = id
         self.title = title
         self.timeline = timeline
         self.baseline = baseline
         self.progress = progress
         self.createdAt = createdAt
+        self.readingSuggestions = readingSuggestions
     }
 }
 
