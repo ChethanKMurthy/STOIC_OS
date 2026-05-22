@@ -177,7 +177,8 @@ private enum WhoopAuth {
 
         let catcher = LoopbackCatcher(port: callbackPort)
         let pending = Task { try await catcher.waitForCallback() }
-        NSWorkspace.shared.open(authURL)
+        // NSWorkspace must be touched on the main thread or it silently no-ops.
+        await MainActor.run { _ = NSWorkspace.shared.open(authURL) }
         let params = try await pending.value
 
         guard let code = params["code"] else {
@@ -295,6 +296,18 @@ private final class LoopbackCatcher: @unchecked Sendable {
                 }
             }
             listener.start(queue: .global())
+
+            // Fail clearly instead of hanging if the callback never arrives.
+            DispatchQueue.global().asyncAfter(deadline: .now() + 180) {
+                if !finished {
+                    finished = true
+                    listener.cancel()
+                    continuation.resume(throwing: WhoopError.http(
+                        "WHOOP login timed out — the browser callback was not received. "
+                        + "Check that the redirect URL registered with WHOOP is exactly "
+                        + "http://localhost:8970/whoop/callback"))
+                }
+            }
         }
     }
 
