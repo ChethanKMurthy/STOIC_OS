@@ -1,42 +1,60 @@
 import Foundation
 
-// MARK: - Ideal Self
+// MARK: - Constitution
 
-/// One weighted trait of the user's designed Ideal Self.
-public struct IdealSelfTrait: Identifiable, Sendable, Hashable, Codable {
+/// One weighted, numeric trait of the user's Constitution.
+public struct ConstitutionTrait: Identifiable, Sendable, Hashable, Codable {
     public var id: UUID
     public var name: String
     /// Relative importance, 0.0 ... 1.0.
     public var weight: Double
-    /// Aspirational level, 1 ... 5.
+    /// Where the user is now, 0 ... 100.
+    public var currentLevel: Int
+    /// Where the user intends to be, 0 ... 100.
     public var targetLevel: Int
 
-    public init(id: UUID = UUID(), name: String, weight: Double, targetLevel: Int = 4) {
+    public init(id: UUID = UUID(),
+                name: String,
+                weight: Double = 1.0,
+                currentLevel: Int = 25,
+                targetLevel: Int = 85) {
         self.id = id
         self.name = name
         self.weight = weight
+        self.currentLevel = currentLevel
         self.targetLevel = targetLevel
     }
 }
 
-/// The user-designed "ideal individual" — hybrid free-text narrative + rubric.
-public struct IdealSelfModel: Identifiable, Sendable, Codable {
+/// The user's Constitution — their stated identity, in their own words plus a
+/// numeric rubric of traits.
+public struct ConstitutionModel: Identifiable, Sendable, Codable {
     public var id: UUID
     public var version: Int
     public var narrative: String
-    public var traits: [IdealSelfTrait]
+    public var traits: [ConstitutionTrait]
     public var createdAt: Date
 
     public init(id: UUID = UUID(),
                 version: Int = 1,
                 narrative: String = "",
-                traits: [IdealSelfTrait] = [],
+                traits: [ConstitutionTrait] = [],
                 createdAt: Date = Date()) {
         self.id = id
         self.version = version
         self.narrative = narrative
         self.traits = traits
         self.createdAt = createdAt
+    }
+
+    /// Weighted alignment of current vs target across the rubric, 0 ... 100.
+    public var integrityScore: Int {
+        ConstitutionScoring.integrityScore(traits: traits)
+    }
+
+    /// Measured divergence from the Constitution, 0 ... 100.
+    public var drift: Int {
+        ConstitutionScoring.drift(traits: traits)
     }
 }
 
@@ -92,26 +110,38 @@ public struct MicroTask: Identifiable, Sendable, Codable {
 
 // MARK: - Time Audit
 
+/// How an hour was spent. V0 grades on a two-value scale.
+public enum TimeQuality: String, Sendable, Codable, CaseIterable {
+    case productive
+    case unproductive
+
+    public var label: String {
+        switch self {
+        case .productive:   return "Productive"
+        case .unproductive: return "Unproductive"
+        }
+    }
+}
+
 public struct HourlyCheckin: Identifiable, Sendable, Codable {
     public var id: UUID
     public var hourStart: Date
     public var activity: String
-    /// e.g. "A", "B+", "C" — proposed by the model, confirmed by the user.
-    public var qualityGrade: String
-    public var gradeRationale: String
+    public var quality: TimeQuality
+    public var note: String
     public var userConfirmed: Bool
 
     public init(id: UUID = UUID(),
                 hourStart: Date,
                 activity: String,
-                qualityGrade: String = "",
-                gradeRationale: String = "",
+                quality: TimeQuality = .productive,
+                note: String = "",
                 userConfirmed: Bool = false) {
         self.id = id
         self.hourStart = hourStart
         self.activity = activity
-        self.qualityGrade = qualityGrade
-        self.gradeRationale = gradeRationale
+        self.quality = quality
+        self.note = note
         self.userConfirmed = userConfirmed
     }
 }

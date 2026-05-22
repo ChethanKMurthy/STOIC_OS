@@ -88,7 +88,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("You're set.")
                 .font(.title2.weight(.semibold))
-            Text("STOIC OS will measure your decisions and hours against this ideal. Refine it any time from the Ideal Self screen.")
+            Text("STOIC OS will measure your decisions and hours against your Constitution. Refine it any time from the Constitution screen.")
                 .foregroundStyle(.secondary)
         }
     }
@@ -98,14 +98,14 @@ struct OnboardingView: View {
             step += 1
             return
         }
-        let traitModels = selected.map { IdealSelfTrait(name: $0, weight: 1.0) }
-        let model = IdealSelfModel(
+        let traitModels = selected.map { ConstitutionTrait(name: $0) }
+        let model = ConstitutionModel(
             narrative: narrative.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? "Composed under pressure, principled, and high-agency."
                 : narrative,
             traits: traitModels
         )
-        app.completeOnboarding(idealSelf: model)
+        app.completeOnboarding(constitution: model)
     }
 }
 

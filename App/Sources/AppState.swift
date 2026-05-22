@@ -4,46 +4,46 @@ import StoicKit
 
 /// The navigable sections of the app.
 enum AppSection: String, CaseIterable, Identifiable {
-    case dashboard, decisions, goals, timetable, timeAudit, bragDoc, idealSelf, settings
+    case dashboard, decisions, goals, timetable, timeAudit, bragDoc, constitution, settings
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .dashboard: return "Dashboard"
-        case .decisions: return "Decisions"
-        case .goals:     return "Goals"
-        case .timetable: return "Timetable"
-        case .timeAudit: return "Time Audit"
-        case .bragDoc:   return "Brag Doc"
-        case .idealSelf: return "Ideal Self"
-        case .settings:  return "Settings"
+        case .dashboard:    return "Dashboard"
+        case .decisions:    return "Decisions"
+        case .goals:        return "Goals"
+        case .timetable:    return "Timetable"
+        case .timeAudit:    return "Time Audit"
+        case .bragDoc:      return "Brag Doc"
+        case .constitution: return "Constitution"
+        case .settings:     return "Settings"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .dashboard: return "square.grid.2x2"
-        case .decisions: return "brain.head.profile"
-        case .goals:     return "target"
-        case .timetable: return "calendar.day.timeline.left"
-        case .timeAudit: return "clock.badge.checkmark"
-        case .bragDoc:   return "trophy"
-        case .idealSelf: return "figure.stand"
-        case .settings:  return "gearshape"
+        case .dashboard:    return "square.grid.2x2"
+        case .decisions:    return "brain.head.profile"
+        case .goals:        return "target"
+        case .timetable:    return "calendar.day.timeline.left"
+        case .timeAudit:    return "clock.badge.checkmark"
+        case .bragDoc:      return "trophy"
+        case .constitution: return "building.columns"
+        case .settings:     return "gearshape"
         }
     }
 
     var accent: Color {
         switch self {
-        case .dashboard: return Theme.accent2
-        case .decisions: return Theme.accent
-        case .goals:     return Theme.closer
-        case .timetable: return Theme.further
-        case .timeAudit: return Color(red: 0.30, green: 0.80, blue: 0.80)
-        case .bragDoc:   return Theme.gold
-        case .idealSelf: return Theme.pink
-        case .settings:  return Theme.neutral
+        case .dashboard:    return Theme.accent2
+        case .decisions:    return Theme.cyan
+        case .goals:        return Theme.closer
+        case .timetable:    return Theme.further
+        case .timeAudit:    return Color(red: 0.30, green: 0.80, blue: 0.80)
+        case .bragDoc:      return Theme.gold
+        case .constitution: return Theme.gold
+        case .settings:     return Theme.neutral
         }
     }
 }
@@ -58,7 +58,7 @@ final class AppState {
     var section: AppSection = .dashboard
     var appLockEnabled: Bool
 
-    var idealSelf: IdealSelfModel
+    var constitution: ConstitutionModel
     var goals: [Goal]
     var bragEntries: [BragEntry]
     var checkins: [HourlyCheckin]
@@ -76,7 +76,7 @@ final class AppState {
         self.modelID = modelID
         self.hasCompletedOnboarding = store.flag("onboarded")
         self.appLockEnabled = store.flag("appLockEnabled_set") ? store.flag("appLockEnabled") : true
-        self.idealSelf = store.load(IdealSelfModel.self, "idealself") ?? IdealSelfModel()
+        self.constitution = store.load(ConstitutionModel.self, "constitution") ?? ConstitutionModel()
         self.goals = store.load([Goal].self, "goals") ?? AppState.seedGoals
         self.bragEntries = store.load([BragEntry].self, "brag") ?? AppState.seedBrag
         self.checkins = store.load([HourlyCheckin].self, "checkins") ?? []
@@ -86,9 +86,9 @@ final class AppState {
 
     // MARK: - Lifecycle
 
-    func completeOnboarding(idealSelf: IdealSelfModel) {
-        self.idealSelf = idealSelf
-        store.save(idealSelf, "idealself")
+    func completeOnboarding(constitution: ConstitutionModel) {
+        self.constitution = constitution
+        store.save(constitution, "constitution")
         hasCompletedOnboarding = true
         store.setFlag("onboarded", true)
     }
@@ -117,8 +117,18 @@ final class AppState {
         store.save(goals, "goals")
     }
 
+    func deleteGoal(_ goal: Goal) {
+        goals.removeAll { $0.id == goal.id }
+        store.save(goals, "goals")
+    }
+
     func addBragEntry(_ entry: BragEntry) {
         bragEntries.insert(entry, at: 0)
+        store.save(bragEntries, "brag")
+    }
+
+    func deleteBragEntry(_ entry: BragEntry) {
+        bragEntries.removeAll { $0.id == entry.id }
         store.save(bragEntries, "brag")
     }
 
@@ -127,9 +137,9 @@ final class AppState {
         store.save(checkins, "checkins")
     }
 
-    func saveIdealSelf(_ model: IdealSelfModel) {
-        idealSelf = model
-        store.save(model, "idealself")
+    func saveConstitution(_ model: ConstitutionModel) {
+        constitution = model
+        store.save(model, "constitution")
     }
 
     // MARK: - Seed data (first launch)
@@ -143,7 +153,7 @@ final class AppState {
 
     static let seedBrag: [BragEntry] = [
         BragEntry(win: "Cut onboarding flow load time 40%",
-                  metric: "4.1 s → 2.4 s p95",
+                  metric: "4.1 s -> 2.4 s p95",
                   stakeholders: "Platform team, Growth PM",
                   outcome: "+6% activation, cited in the Q2 review")
     ]

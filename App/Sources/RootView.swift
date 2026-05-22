@@ -54,9 +54,9 @@ struct MainSplitView: View {
         case .goals:     GoalsView()
         case .timetable: TimetableView()
         case .timeAudit: TimeAuditView()
-        case .bragDoc:   BragDocView()
-        case .idealSelf: IdealSelfView()
-        case .settings:  SettingsView()
+        case .bragDoc:      BragDocView()
+        case .constitution: ConstitutionView()
+        case .settings:     SettingsView()
         }
     }
 }

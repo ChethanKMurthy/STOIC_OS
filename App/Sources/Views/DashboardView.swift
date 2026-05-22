@@ -13,7 +13,7 @@ struct DashboardView: View {
 
                 HStack(alignment: .top, spacing: 16) {
                     goalsCard
-                    idealSelfCard
+                    constitutionCard
                 }
                 auditCard
 
@@ -42,14 +42,17 @@ struct DashboardView: View {
                 SectionLabel("Active goals", tint: Theme.closer)
                 if app.goals.isEmpty {
                     Text("No goals yet. Add one in the Goals tab.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(.callout).foregroundStyle(Theme.textDim)
                 } else {
                     ForEach(app.goals) { goal in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(goal.title).font(.callout.weight(.medium))
-                            ProgressView(value: goal.progress)
-                            Text("\(Int(goal.progress * 100))% · \(goal.timeline)")
-                                .font(.caption).foregroundStyle(.secondary)
+                            Text(goal.title)
+                                .font(.callout.weight(.medium))
+                                .foregroundStyle(Theme.textPrimary)
+                            HUDBar(value: goal.progress, accent: Theme.closer)
+                            Text("\(Int(goal.progress * 100))%  ·  \(goal.timeline)")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(Theme.textDim)
                         }
                     }
                 }
@@ -57,19 +60,33 @@ struct DashboardView: View {
         }
     }
 
-    private var idealSelfCard: some View {
-        Card(accent: Theme.pink) {
-            VStack(alignment: .leading, spacing: 8) {
-                SectionLabel("Ideal Self", tint: Theme.pink)
-                Text(app.idealSelf.narrative.isEmpty
-                     ? "Not set yet."
-                     : app.idealSelf.narrative)
-                    .font(.callout)
-                    .lineLimit(4)
-                Divider()
-                Text("\(app.idealSelf.traits.count) traits tracked")
-                    .font(.caption).foregroundStyle(.secondary)
-                Button("Open Ideal Self") { app.section = .idealSelf }
+    private var constitutionCard: some View {
+        Card(accent: Theme.gold) {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionLabel("Constitution", tint: Theme.gold)
+                HStack(spacing: 14) {
+                    RingGauge(value: Double(app.constitution.integrityScore) / 100.0,
+                              accent: Theme.gold, lineWidth: 7)
+                        .frame(width: 66, height: 66)
+                        .overlay(
+                            Text("\(app.constitution.integrityScore)")
+                                .font(.system(size: 21, weight: .bold, design: .rounded))
+                                .foregroundStyle(Theme.textPrimary)
+                        )
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Integrity score")
+                            .font(.caption).foregroundStyle(Theme.textDim)
+                        Text("DRIFT \(app.constitution.drift)")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(Theme.textDim)
+                    }
+                }
+                Text(app.constitution.narrative.isEmpty
+                     ? "Not set." : app.constitution.narrative)
+                    .font(.caption)
+                    .foregroundStyle(Theme.textDim)
+                    .lineLimit(3)
+                Button("Open Constitution") { app.section = .constitution }
                     .buttonStyle(.link)
             }
         }
@@ -81,12 +98,14 @@ struct DashboardView: View {
                 SectionLabel("Time audit", tint: Theme.further)
                 if app.checkins.isEmpty {
                     Text("No hours logged yet. STOIC OS grades how each hour was spent — start in the Time Audit tab.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(.callout).foregroundStyle(Theme.textDim)
                 } else {
-                    Text("\(app.checkins.count) hours logged.")
-                        .font(.callout)
-                    Text("Latest: \(app.checkins[0].activity) — grade \(app.checkins[0].qualityGrade)")
-                        .font(.caption).foregroundStyle(.secondary)
+                    let productive = app.checkins.filter { $0.quality == .productive }.count
+                    Text("\(app.checkins.count) hours logged  ·  \(productive) productive")
+                        .font(.callout).foregroundStyle(Theme.textPrimary)
+                    Text("Latest: \(app.checkins[0].activity) — \(app.checkins[0].quality.label)")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(Theme.textDim)
                 }
             }
         }

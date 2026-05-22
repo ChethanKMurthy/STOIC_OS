@@ -11,7 +11,7 @@ public struct DecisionOutput: Codable, Sendable, Equatable {
     public var diplomaticApproach: String
     public var counterArgument: String
     public var namedRationalization: String?
-    public var idealSelfImpact: IdealSelfImpact
+    public var constitutionImpact: ConstitutionImpact
     public var dontDoThis: [String]
 
     public init(realQuestion: String,
@@ -22,7 +22,7 @@ public struct DecisionOutput: Codable, Sendable, Equatable {
                 diplomaticApproach: String,
                 counterArgument: String,
                 namedRationalization: String?,
-                idealSelfImpact: IdealSelfImpact,
+                constitutionImpact: ConstitutionImpact,
                 dontDoThis: [String]) {
         self.realQuestion = realQuestion
         self.options = options
@@ -32,7 +32,7 @@ public struct DecisionOutput: Codable, Sendable, Equatable {
         self.diplomaticApproach = diplomaticApproach
         self.counterArgument = counterArgument
         self.namedRationalization = namedRationalization
-        self.idealSelfImpact = idealSelfImpact
+        self.constitutionImpact = constitutionImpact
         self.dontDoThis = dontDoThis
     }
 }
@@ -91,7 +91,7 @@ public struct Consequences: Codable, Sendable, Equatable {
     }
 }
 
-public struct IdealSelfImpact: Codable, Sendable, Equatable {
+public struct ConstitutionImpact: Codable, Sendable, Equatable {
     /// "closer", "neutral", or "further".
     public var direction: String
     public var summary: String

@@ -64,7 +64,7 @@ public enum PromptBuilder {
           "diplomaticApproach": "the most diplomatic way to act",
           "counterArgument": "the strongest case against your recommendation",
           "namedRationalization": "a rationalisation the user may be making, or null",
-          "idealSelfImpact": { "direction": "closer|neutral|further", "summary": "why" },
+          "constitutionImpact": { "direction": "closer|neutral|further", "summary": "why" },
           "dontDoThis": ["manipulative impulses to avoid in this situation"]
         }
 

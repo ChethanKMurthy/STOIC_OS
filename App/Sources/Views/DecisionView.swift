@@ -279,8 +279,8 @@ struct DecisionResultView: View {
                 }
             }
 
-            section("Ideal Self impact") {
-                Text("\(output.idealSelfImpact.direction.capitalized) — \(output.idealSelfImpact.summary)")
+            section("Constitution impact") {
+                Text("\(output.constitutionImpact.direction.capitalized) — \(output.constitutionImpact.summary)")
             }
 
             Button("New decision", action: onNew)

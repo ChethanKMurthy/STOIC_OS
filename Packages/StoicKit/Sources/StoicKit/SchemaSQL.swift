@@ -6,7 +6,7 @@ public enum SchemaSQL {
     /// Ordered DDL statements. Run inside one migration.
     public static let v1: [String] = [
         """
-        CREATE TABLE IF NOT EXISTS ideal_self (
+        CREATE TABLE IF NOT EXISTS constitution (
             id          TEXT PRIMARY KEY,
             version     INTEGER NOT NULL,
             narrative   TEXT NOT NULL,
@@ -14,12 +14,13 @@ public enum SchemaSQL {
         );
         """,
         """
-        CREATE TABLE IF NOT EXISTS ideal_self_trait (
-            id            TEXT PRIMARY KEY,
-            ideal_self_id TEXT NOT NULL,
-            name          TEXT NOT NULL,
-            weight        DOUBLE NOT NULL,
-            target_level  INTEGER NOT NULL
+        CREATE TABLE IF NOT EXISTS constitution_trait (
+            id              TEXT PRIMARY KEY,
+            constitution_id TEXT NOT NULL,
+            name            TEXT NOT NULL,
+            weight          DOUBLE NOT NULL,
+            current_level   INTEGER NOT NULL,
+            target_level    INTEGER NOT NULL
         );
         """,
         """
@@ -46,8 +47,8 @@ public enum SchemaSQL {
             id              TEXT PRIMARY KEY,
             hour_start      DATETIME NOT NULL,
             activity        TEXT NOT NULL,
-            quality_grade   TEXT NOT NULL,
-            grade_rationale TEXT NOT NULL,
+            quality         TEXT NOT NULL,
+            note            TEXT NOT NULL,
             user_confirmed  BOOLEAN NOT NULL
         );
         """,

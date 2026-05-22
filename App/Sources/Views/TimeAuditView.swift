@@ -7,8 +7,7 @@ import StoicKit
 struct TimeAuditView: View {
     @Environment(AppState.self) private var app
     @State private var activity = ""
-    @State private var grade = "B"
-    private let grades = ["A", "B", "C", "D", "F"]
+    @State private var quality: TimeQuality = .productive
 
     var body: some View {
         ScrollView {
@@ -17,13 +16,17 @@ struct TimeAuditView: View {
                             subtitle: "Account for an hour — honestly.")
 
                 Card {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 12) {
                         SectionLabel("Log this hour")
                         TextField("How was this hour spent?", text: $activity)
-                        Picker("Quality grade", selection: $grade) {
-                            ForEach(grades, id: \.self) { Text($0).tag($0) }
+                            .textFieldStyle(.roundedBorder)
+                        Picker("Quality", selection: $quality) {
+                            ForEach(TimeQuality.allCases, id: \.self) { value in
+                                Text(value.label).tag(value)
+                            }
                         }
                         .pickerStyle(.segmented)
+                        .labelsHidden()
                         HStack {
                             Spacer()
                             Button("Save check-in") {
@@ -31,39 +34,68 @@ struct TimeAuditView: View {
                                 app.addCheckin(HourlyCheckin(
                                     hourStart: Date(),
                                     activity: activity,
-                                    qualityGrade: grade,
-                                    gradeRationale: "Self-graded (V0).",
+                                    quality: quality,
                                     userConfirmed: true))
                                 activity = ""
                             }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(GradientButtonStyle())
                             .disabled(activity.isEmpty)
                         }
                     }
                 }
 
                 if !app.checkins.isEmpty {
-                    Card {
-                        VStack(alignment: .leading, spacing: 8) {
-                            SectionLabel("Logged hours")
-                            ForEach(app.checkins.prefix(12)) { checkin in
-                                HStack {
-                                    Text(checkin.qualityGrade)
-                                        .font(.callout.weight(.bold).monospaced())
-                                        .frame(width: 28)
-                                    Text(checkin.activity).font(.callout)
-                                    Spacer()
-                                    Text(checkin.hourStart.formatted(date: .omitted, time: .shortened))
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
+                    ratioCard
+                    loggedCard
                 }
 
                 ComingSoonNote(module: "Hourly notifications, model-proposed grading, and the daily audit")
             }
             .padding(24)
+        }
+    }
+
+    private var ratioCard: some View {
+        let total = app.checkins.count
+        let productive = app.checkins.filter { $0.quality == .productive }.count
+        let ratio = total > 0 ? Double(productive) / Double(total) : 0
+        return Card(accent: Theme.closer) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Productive ratio", tint: Theme.closer)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("\(Int(ratio * 100))%")
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Text("\(productive) / \(total) hours")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(Theme.textDim)
+                }
+                HUDBar(value: ratio, accent: Theme.closer)
+            }
+        }
+    }
+
+    private var loggedCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Logged hours")
+                ForEach(app.checkins.prefix(12)) { checkin in
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(checkin.quality == .productive ? Theme.closer : Theme.danger)
+                            .frame(width: 8, height: 8)
+                        Text(checkin.activity)
+                            .font(.callout)
+                            .foregroundStyle(Theme.textPrimary)
+                        Spacer()
+                        Text(checkin.quality.label)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(checkin.quality == .productive
+                                             ? Theme.closer : Theme.danger)
+                    }
+                }
+            }
         }
     }
 }
