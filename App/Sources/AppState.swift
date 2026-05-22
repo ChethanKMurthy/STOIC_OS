@@ -16,7 +16,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .timetable:    return "Timetable"
         case .timeAudit:    return "Time Audit"
         case .vitals:       return "Vitals"
-        case .bragDoc:      return "Brag Doc"
+        case .bragDoc:      return "Navigator"
         case .constitution: return "Constitution"
         case .settings:     return "Settings"
         }
@@ -68,6 +68,7 @@ final class AppState {
     var microTasks: [MicroTask]
     var timeBlocks: [TimeBlock]
     var bragEntries: [BragEntry]
+    var contacts: [Contact]
     var checkins: [HourlyCheckin]
     var decisions: [DecisionRecord]
 
@@ -91,6 +92,7 @@ final class AppState {
         self.microTasks = store.load([MicroTask].self, "microtasks") ?? []
         self.timeBlocks = store.load([TimeBlock].self, "timeblocks") ?? AppState.seedBlocks
         self.bragEntries = store.load([BragEntry].self, "brag") ?? AppState.seedBrag
+        self.contacts = store.load([Contact].self, "contacts") ?? []
         self.checkins = store.load([HourlyCheckin].self, "checkins") ?? []
         self.decisions = store.load([DecisionRecord].self, "decisions") ?? []
         self.engine = ReasoningEngine(provider: LocalLLMProvider(modelID: modelID))
@@ -239,6 +241,16 @@ final class AppState {
     func deleteBragEntry(_ entry: BragEntry) {
         bragEntries.removeAll { $0.id == entry.id }
         store.save(bragEntries, "brag")
+    }
+
+    func addContact(_ contact: Contact) {
+        contacts.append(contact)
+        store.save(contacts, "contacts")
+    }
+
+    func deleteContact(_ contact: Contact) {
+        contacts.removeAll { $0.id == contact.id }
+        store.save(contacts, "contacts")
     }
 
     // MARK: - Time audit

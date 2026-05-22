@@ -215,6 +215,53 @@ public struct BragEntry: Identifiable, Sendable, Codable {
     }
 }
 
+/// Where a contact stands relative to the user's growth.
+public enum ContactRelationship: String, Sendable, Codable, CaseIterable {
+    case advocate, neutral, rival
+
+    public var label: String {
+        switch self {
+        case .advocate: return "Advocate"
+        case .neutral:  return "Neutral"
+        case .rival:    return "Rival"
+        }
+    }
+}
+
+/// How much organisational influence a contact holds.
+public enum InfluenceLevel: String, Sendable, Codable, CaseIterable {
+    case high, medium, low
+
+    public var label: String {
+        switch self {
+        case .high:   return "High"
+        case .medium: return "Medium"
+        case .low:    return "Low"
+        }
+    }
+}
+
+/// A node on the user's growth-relevant network map.
+public struct Contact: Identifiable, Sendable, Codable {
+    public var id: UUID
+    public var name: String
+    public var role: String
+    public var relationship: ContactRelationship
+    public var influence: InfluenceLevel
+
+    public init(id: UUID = UUID(),
+                name: String,
+                role: String = "",
+                relationship: ContactRelationship = .neutral,
+                influence: InfluenceLevel = .medium) {
+        self.id = id
+        self.name = name
+        self.role = role
+        self.relationship = relationship
+        self.influence = influence
+    }
+}
+
 // MARK: - Decisions
 
 /// A persisted reasoning session. `outputJSON` holds an encoded ``DecisionOutput``.
