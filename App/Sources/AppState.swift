@@ -62,6 +62,7 @@ final class AppState {
     var appLockEnabled: Bool
 
     var constitution: ConstitutionModel
+    var trajectory: [TrajectoryPoint]
     var goals: [Goal]
     var milestones: [Milestone]
     var microTasks: [MicroTask]
@@ -84,6 +85,7 @@ final class AppState {
         self.hasCompletedOnboarding = store.flag("onboarded")
         self.appLockEnabled = store.flag("appLockEnabled_set") ? store.flag("appLockEnabled") : true
         self.constitution = store.load(ConstitutionModel.self, "constitution") ?? ConstitutionModel()
+        self.trajectory = store.load([TrajectoryPoint].self, "trajectory") ?? []
         self.goals = store.load([Goal].self, "goals") ?? AppState.seedGoals
         self.milestones = store.load([Milestone].self, "milestones") ?? []
         self.microTasks = store.load([MicroTask].self, "microtasks") ?? []
@@ -100,6 +102,7 @@ final class AppState {
     func completeOnboarding(constitution: ConstitutionModel) {
         self.constitution = constitution
         store.save(constitution, "constitution")
+        recordTrajectory()
         hasCompletedOnboarding = true
         store.setFlag("onboarded", true)
     }
@@ -251,6 +254,21 @@ final class AppState {
     func saveConstitution(_ model: ConstitutionModel) {
         constitution = model
         store.save(model, "constitution")
+        recordTrajectory()
+    }
+
+    /// Record today's Integrity Score on the trajectory (one point per day).
+    private func recordTrajectory() {
+        let score = constitution.integrityScore
+        if let index = trajectory.firstIndex(where: { Calendar.current.isDateInToday($0.date) }) {
+            trajectory[index].integrityScore = score
+        } else {
+            trajectory.append(TrajectoryPoint(integrityScore: score))
+        }
+        if trajectory.count > 120 {
+            trajectory.removeFirst(trajectory.count - 120)
+        }
+        store.save(trajectory, "trajectory")
     }
 
     /// A decision verdict moves the Constitution toward or away from the ideal.

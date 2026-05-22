@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 import StoicKit
 
 /// Constitution screen — the numeric core of who the user has defined themselves to be.
@@ -19,6 +20,7 @@ struct ConstitutionView: View {
                 }
 
                 integrityCore
+                trajectoryCard
                 narrativeCard
                 traitsCard
             }
@@ -58,6 +60,34 @@ struct ConstitutionView: View {
                     }
                     .font(.system(.callout, design: .monospaced).weight(.semibold))
                     .foregroundStyle(app.constitution.drift > 40 ? Theme.danger : Theme.textDim)
+                }
+            }
+        }
+    }
+
+    // MARK: - Trajectory
+
+    private var trajectoryCard: some View {
+        Card(accent: Theme.gold) {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel("Integrity trajectory", tint: Theme.gold)
+                if app.trajectory.count < 2 {
+                    Text("Not enough history yet — the trajectory builds as you decide and log time.")
+                        .font(.callout)
+                        .foregroundStyle(Theme.textDim)
+                } else {
+                    Chart(app.trajectory) { point in
+                        AreaMark(x: .value("Date", point.date),
+                                 y: .value("Integrity", point.integrityScore))
+                            .foregroundStyle(Theme.gold.opacity(0.16))
+                            .interpolationMethod(.catmullRom)
+                        LineMark(x: .value("Date", point.date),
+                                 y: .value("Integrity", point.integrityScore))
+                            .foregroundStyle(Theme.gold)
+                            .interpolationMethod(.catmullRom)
+                    }
+                    .chartYScale(domain: 0...100)
+                    .frame(height: 150)
                 }
             }
         }

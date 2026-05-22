@@ -58,6 +58,19 @@ public struct ConstitutionModel: Identifiable, Sendable, Codable {
     }
 }
 
+/// One dated point on the Constitution's integrity trajectory.
+public struct TrajectoryPoint: Identifiable, Sendable, Codable, Equatable {
+    public var id: UUID
+    public var date: Date
+    public var integrityScore: Int
+
+    public init(id: UUID = UUID(), date: Date = Date(), integrityScore: Int) {
+        self.id = id
+        self.date = date
+        self.integrityScore = integrityScore
+    }
+}
+
 // MARK: - Goals & Tasks
 
 public struct Goal: Identifiable, Sendable, Codable {
